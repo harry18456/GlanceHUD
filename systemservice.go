@@ -2,6 +2,7 @@ package main
 
 import (
 	"glancehud/internal/modules"
+	"glancehud/internal/protocol"
 	"sync"
 	"time"
 
@@ -109,5 +110,26 @@ func (s *SystemService) StartMonitoring() {
 // Keep GetSystemStats for backward compatibility or immediate fetch if needed
 func (s *SystemService) GetSystemStats() (any, error) {
 	// Not used in Push architecture
+	return nil, nil
+}
+
+// GetModules returns the list of available modules and their render configs
+func (s *SystemService) GetModules() ([]protocol.RenderConfig, error) {
+	var configs []protocol.RenderConfig
+	// Iterate in specific order if needed, but map iteration is random.
+	// We might want to use the config order?
+	// For now, return all available modules' render configs.
+	// Frontend can sort them based on use or config.
+	for _, mod := range s.modules {
+		configs = append(configs, mod.GetRenderConfig())
+	}
+	return configs, nil
+}
+
+// GetModuleConfigSchema returns the config schema for a specific module
+func (s *SystemService) GetModuleConfigSchema(moduleID string) ([]protocol.ConfigSchema, error) {
+	if mod, ok := s.modules[moduleID]; ok {
+		return mod.GetConfigSchema(), nil
+	}
 	return nil, nil
 }
