@@ -45,55 +45,6 @@ export class AppConfig {
     }
 }
 
-export class ModuleData {
-    /**
-     * Creates a new ModuleData instance.
-     * @param {Partial<ModuleData>} [$$source = {}] - The source object to create the ModuleData.
-     */
-    constructor($$source = {}) {
-        if (!("id" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["id"] = "";
-        }
-        if (!("label" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["label"] = "";
-        }
-        if (!("value" in $$source)) {
-            /**
-             * @member
-             * @type {any}
-             */
-            this["value"] = null;
-        }
-        if (!("icon" in $$source)) {
-            /**
-             * @member
-             * @type {string}
-             */
-            this["icon"] = "";
-        }
-
-        Object.assign(this, $$source);
-    }
-
-    /**
-     * Creates a new ModuleData instance from a string or object.
-     * @param {any} [$$source = {}]
-     * @returns {ModuleData}
-     */
-    static createFrom($$source = {}) {
-        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
-        return new ModuleData(/** @type {Partial<ModuleData>} */($$parsedSource));
-    }
-}
-
 export class WidgetConfig {
     /**
      * Creates a new WidgetConfig instance.

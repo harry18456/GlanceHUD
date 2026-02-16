@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"glancehud/internal/modules"
 	"glancehud/internal/protocol"
 	"reflect"
@@ -58,6 +59,7 @@ func (s *SystemService) StartMonitoring() {
 	defer s.mu.Unlock()
 
 	// Stop all existing monitors first
+	fmt.Println("StartMonitoring called")
 	for id, ch := range s.stopChans {
 		close(ch)
 		delete(s.stopChans, id)
@@ -92,6 +94,7 @@ func (s *SystemService) StartMonitoring() {
 			go func(m modules.Module, stopChan chan struct{}) {
 				// Initial update
 				if data, err := m.Update(); err == nil {
+					fmt.Printf("Initial update for %s: %+v\n", m.ID(), data)
 					s.app.Event.Emit("stats:update", protocol.UpdateEvent{
 						ID:   m.ID(),
 						Data: data,
@@ -138,6 +141,26 @@ func (s *SystemService) StartMonitoring() {
 func (s *SystemService) GetSystemStats() (any, error) {
 	// Not used in Push architecture
 	return nil, nil
+}
+
+// GetCurrentData returns the last cached data for all active modules
+func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// We can't access local cache var from StartMonitoring.
+	// So we should promote cache to struct field.
+	// OR just trigger an immediate update for all.
+	// Triggering update is safer.
+
+	results := make(map[string]protocol.DataPayload)
+	for id, mod := range s.modules {
+		// Just call Update. It's cheap enough.
+		if data, err := mod.Update(); err == nil && data != nil {
+			results[id] = *data
+		}
+	}
+	return results, nil
 }
 
 // GetModules returns the list of available modules and their render configs

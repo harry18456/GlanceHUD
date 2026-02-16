@@ -12,6 +12,9 @@ import * as application$0 from "../github.com/wailsapp/wails/v3/pkg/application/
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as modules$0 from "./internal/modules/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as protocol$0 from "./internal/protocol/models.js";
 
 /**
  * @returns {$CancellablePromise<modules$0.AppConfig>}
@@ -23,13 +26,42 @@ export function GetConfig() {
 }
 
 /**
- * Keep GetSystemStats for backward compatibility or immediate fetch if needed
- * @returns {$CancellablePromise<modules$0.ModuleData[]>}
+ * GetCurrentData returns the last cached data for all active modules
+ * @returns {$CancellablePromise<{ [_ in string]?: protocol$0.DataPayload }>}
  */
-export function GetSystemStats() {
-    return $Call.ByID(847498860).then(/** @type {($result: any) => any} */(($result) => {
+export function GetCurrentData() {
+    return $Call.ByID(2420040889).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType2($result);
     }));
+}
+
+/**
+ * GetModuleConfigSchema returns the config schema for a specific module
+ * @param {string} moduleID
+ * @returns {$CancellablePromise<protocol$0.ConfigSchema[]>}
+ */
+export function GetModuleConfigSchema(moduleID) {
+    return $Call.ByID(2223895245, moduleID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType4($result);
+    }));
+}
+
+/**
+ * GetModules returns the list of available modules and their render configs
+ * @returns {$CancellablePromise<protocol$0.RenderConfig[]>}
+ */
+export function GetModules() {
+    return $Call.ByID(3895809045).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType6($result);
+    }));
+}
+
+/**
+ * Keep GetSystemStats for backward compatibility or immediate fetch if needed
+ * @returns {$CancellablePromise<any>}
+ */
+export function GetSystemStats() {
+    return $Call.ByID(847498860);
 }
 
 /**
@@ -57,5 +89,9 @@ export function StartMonitoring() {
 
 // Private type creation functions
 const $$createType0 = modules$0.AppConfig.createFrom;
-const $$createType1 = modules$0.ModuleData.createFrom;
-const $$createType2 = $Create.Array($$createType1);
+const $$createType1 = protocol$0.DataPayload.createFrom;
+const $$createType2 = $Create.Map($Create.Any, $$createType1);
+const $$createType3 = protocol$0.ConfigSchema.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = protocol$0.RenderConfig.createFrom;
+const $$createType6 = $Create.Array($$createType5);

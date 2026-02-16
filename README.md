@@ -41,7 +41,7 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
   - 定義通用且原子化的 UI 元件 (如 `CircularGauge`, `Sparkline`)。
   - **事件驅動更新**: 使用 Manifest (結構) 與 Data Patch (數據) 分離策略。
 - [x] **設定協議 (Config Protocol)**: 模組回傳 Schema，前端自動產生設定表單。
-- [ ] **效能優化**: 後端實作 **Diff Check**。
+- [x] **效能優化**: 後端實作 **Diff Check**。
 
 ### Phase 3: 進階 HUD 體驗 (Advanced HUD) 📅 規劃中
 

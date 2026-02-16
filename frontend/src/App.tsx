@@ -17,12 +17,16 @@ function App() {
 
         // 2. Listen for updates (Data Patch)
         const unsub = Events.On("stats:update", (event) => {
+             console.log("Stats Update Received:", event);
              const payload = event.data as UpdateEvent;
-             if (payload && payload.id && payload.data) {
+             if (payload && payload.id) {
+                 console.log(`Updating ${payload.id}:`, payload.data);
                  setDataMap(prev => ({
                      ...prev,
                      [payload.id]: payload.data
                  }));
+             } else {
+                 console.warn("Invalid payload:", payload);
              }
         });
 
@@ -36,6 +40,13 @@ function App() {
         SystemService.GetModules().then((modules) => {
             console.log("Loaded modules:", modules);
             setConfigs(modules);
+            // Fetch initial data immediately to avoid race condition
+            return SystemService.GetCurrentData();
+        }).then((data) => {
+             console.log("Initial data:", data);
+             if (data) {
+                 setDataMap(data);
+             }
         });
     };
 
@@ -47,14 +58,15 @@ function App() {
     };
 
     return (
-        <div id="app" className="drag-region flex flex-col gap-4 p-4 min-h-screen bg-black/50 backdrop-blur-md text-white relative">
-             {/* Settings Button */}
+        <div id="app" className="drag-region flex flex-col gap-4 p-4 h-screen overflow-y-auto bg-black/50 backdrop-blur-md text-white relative">
+             {/* Settings Button (Cog) */}
              <button 
-                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors z-40 no-drag"
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors z-40 no-drag bg-gray-900/50 rounded-full"
                 onClick={() => setIsSettingsOpen(true)}
              >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 1 1 0-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395m0-3.46c.495.43.055 1.012-.412 1.565l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 0 1-1.44-4.282m3.102.069a18.03 18.03 0 0 1-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 0 1 8.835 2.535M10.34 6.66a23.847 23.847 0 0 0 8.835-2.535m0 0A23.74 23.74 0 0 0 18.795 3m.38 1.125a23.91 23.91 0 0 1 1.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 0 0 1.014-5.395" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.159.956c.03.183.137.347.295.45.244.16.505.297.776.406.183.074.316.223.356.41l.204 1.05c.092.47-.32 1.002-.87 1.002h-1.093a.933.933 0 0 1-.87-1.002l.16-1.05c.04-.187.172-.336.355-.41.27-.11.531-.246.775-.406a.715.715 0 0 0 .296-.45l.159-.956ZM12 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-1.657 6.84c-.09.542-.56.94-1.11.94H8.14c-.55 0-1.02-.398-1.11-.94l-.159-.956a.715.715 0 0 0-.295-.45 6.002 6.002 0 0 0-.776-.406.714.714 0 0 0-.356-.41l-.204-1.05c-.092-.47.32-1.002.87-1.002h1.093c.58 0 1.049.52.87 1.002l-.16 1.05c-.04.187-.172.336-.355.41-.27.11-.531.246-.775.406-.159.103-.266.267-.296.45l-.159.956ZM6 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm11.343-2.16c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.159-.956a.715.715 0 0 0-.295-.45 6.002 6.002 0 0 0-.776-.406.714.714 0 0 0-.356-.41l-.204-1.05c-.092-.47.32-1.002.87-1.002h1.093c.58 0 1.049.52.87 1.002l-.16 1.05c-.04.187-.172.336-.355.41-.27.11-.531.246-.775.406-.159.103-.266.267-.296.45l-.159.956ZM18 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM6.25 6.25a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM3 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5A.75.75 0 0 1 3 12ZM6.25 17.75a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06-1.06l1.06-1.06a.75.75 0 0 1 1.06 0ZM12 20.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75ZM17.75 17.75a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM21 12a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 21 12ZM17.75 6.25a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Z" />
                 </svg>
              </button>
 
