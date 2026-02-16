@@ -1,17 +1,14 @@
 package modules
 
-import "time"
+import (
+	"glancehud/internal/protocol"
+	"time"
+)
 
 type Module interface {
 	ID() string
-	Update() (*ModuleData, error)
+	GetRenderConfig() protocol.RenderConfig
+	Update() (*protocol.DataPayload, error)
 	ApplyConfig(props map[string]interface{})
 	Interval() time.Duration
-}
-
-type ModuleData struct {
-	ID    string      `json:"id"`
-	Label string      `json:"label"`
-	Value interface{} `json:"value"`
-	Icon  string      `json:"icon"`
 }

@@ -107,7 +107,7 @@ func (s *SystemService) StartMonitoring() {
 }
 
 // Keep GetSystemStats for backward compatibility or immediate fetch if needed
-func (s *SystemService) GetSystemStats() ([]modules.ModuleData, error) {
+func (s *SystemService) GetSystemStats() (any, error) {
 	// Not used in Push architecture
-	return []modules.ModuleData{}, nil
+	return nil, nil
 }

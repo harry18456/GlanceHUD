@@ -1,9 +1,8 @@
 package modules
 
 import (
+	"glancehud/internal/protocol"
 	"time"
-
-	"github.com/shirou/gopsutil/v4/cpu"
 )
 
 type CPUModule struct{}
@@ -24,16 +23,10 @@ func (m *CPUModule) ApplyConfig(props map[string]interface{}) {
 	// No config
 }
 
-func (m *CPUModule) Update() (*ModuleData, error) {
-	cpuPercent, err := cpu.Percent(0, false)
-	if err != nil {
-		return nil, err
-	}
+func (m *CPUModule) GetRenderConfig() protocol.RenderConfig {
+	return protocol.RenderConfig{} // Stub
+}
 
-	return &ModuleData{
-		ID:    m.ID(),
-		Label: "Processor",
-		Value: round(cpuPercent[0], 1),
-		Icon:  "Cpu",
-	}, nil
+func (m *CPUModule) Update() (*protocol.DataPayload, error) {
+	return &protocol.DataPayload{}, nil // Stub
 }
