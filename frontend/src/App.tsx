@@ -106,7 +106,11 @@ function App() {
               letterSpacing: "0.1em",
             }}
           >
-            {isSettingsOpen ? "Settings" : "GlanceHUD"}
+            {isSettingsOpen ? "Settings" : (
+              <>
+                GLANCEHUD <span style={{ opacity: 0.5, fontSize: "0.9em", marginLeft: 4 }}>v0.2.0</span>
+              </>
+            )}
           </span>
           <button
             className="no-drag"

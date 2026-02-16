@@ -58,3 +58,8 @@ tasks:
     summary: Builds and runs the Docker image
     cmds:
       - task: common:run:docker
+
+  bump:
+    summary: Bumps version (usage: task bump VERSION=0.2.1)
+    cmds:
+      - node scripts/bump_version.js {{.VERSION}}
