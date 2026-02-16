@@ -39,8 +39,8 @@ type DataPayload struct {
 
 // --- 組件專用數據結構 (Helper Structs) ---
 
-// BarItem 用於 BarList
-type BarItem struct {
+// BarListItem 用於 BarList
+type BarListItem struct {
 	Label   string  `json:"label"`
 	Percent float64 `json:"percent"`
 	Value   string  `json:"value"` // e.g. "100GB / 500GB"
