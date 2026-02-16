@@ -26,13 +26,14 @@ type ConfigService struct {
 
 func NewConfigService(configDir string) (*ConfigService, error) {
 	configPath := filepath.Join(configDir, "config.json")
+
 	cs := &ConfigService{
 		configPath: configPath,
 		Config: AppConfig{
 			Widgets: []WidgetConfig{
 				{ID: "cpu", Enabled: true},
 				{ID: "mem", Enabled: true},
-				{ID: "disk", Enabled: true, Props: map[string]interface{}{"path": "C:\\"}},
+				{ID: "disk", Enabled: true},
 				{ID: "net", Enabled: true},
 			},
 			Theme: "neon",

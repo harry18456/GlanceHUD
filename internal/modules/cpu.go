@@ -1,7 +1,7 @@
 package modules
 
 import (
-	"math"
+	"time"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 )
@@ -16,6 +16,14 @@ func (m *CPUModule) ID() string {
 	return "cpu"
 }
 
+func (m *CPUModule) Interval() time.Duration {
+	return time.Second
+}
+
+func (m *CPUModule) ApplyConfig(props map[string]interface{}) {
+	// No config
+}
+
 func (m *CPUModule) Update() (*ModuleData, error) {
 	cpuPercent, err := cpu.Percent(0, false)
 	if err != nil {
@@ -28,9 +36,4 @@ func (m *CPUModule) Update() (*ModuleData, error) {
 		Value: round(cpuPercent[0], 1),
 		Icon:  "Cpu",
 	}, nil
-}
-
-func round(val float64, n int) float64 {
-	pow := math.Pow(10, float64(n))
-	return math.Round(val*pow) / pow
 }

@@ -12,7 +12,7 @@ var assets embed.FS
 
 func main() {
 	// custom service
-	systemService := NewSystemService(nil)
+	systemService := NewSystemService()
 
 	app := application.New(application.Options{
 		Name:        "GlanceHUD",
@@ -27,6 +27,9 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: true,
 		},
 	})
+
+	// Inject app instance and start monitoring
+	systemService.Start(app)
 
 	// Create the HUD window — frameless, transparent, always-on-top
 	app.Window.NewWithOptions(application.WebviewWindowOptions{

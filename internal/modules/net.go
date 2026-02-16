@@ -20,6 +20,14 @@ func (m *NetModule) ID() string {
 	return "net"
 }
 
+func (m *NetModule) Interval() time.Duration {
+	return time.Second // Update every 1s
+}
+
+func (m *NetModule) ApplyConfig(props map[string]interface{}) {
+	// No specific config for net yet
+}
+
 type NetData struct {
 	Up   float64 `json:"up"`   // KB/s
 	Down float64 `json:"down"` // KB/s

@@ -45,9 +45,6 @@ export class AppConfig {
     }
 }
 
-/**
- * ModuleData represents the data returned by a module update.
- */
 export class ModuleData {
     /**
      * Creates a new ModuleData instance.
@@ -70,7 +67,6 @@ export class ModuleData {
         }
         if (!("value" in $$source)) {
             /**
-             * Generic value (string, number, struct)
              * @member
              * @type {any}
              */
@@ -78,7 +74,6 @@ export class ModuleData {
         }
         if (!("icon" in $$source)) {
             /**
-             * Lucide icon name, optional
              * @member
              * @type {string}
              */

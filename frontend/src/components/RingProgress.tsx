@@ -16,7 +16,7 @@ export function RingProgress({
   const offset = circ - (value / 100) * circ;
 
   return (
-    <svg width={size} height={size} className="drop-shadow-md">
+    <svg width={size} height={size} style={{ overflow: "visible" }} className="drop-shadow-md">
       <circle
         cx={size / 2}
         cy={size / 2}

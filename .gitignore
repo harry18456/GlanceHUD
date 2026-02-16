@@ -35,3 +35,4 @@ Thumbs.db
 # config.json should probably be committed if it's default, 
 # but if it contains local user prefs we might ignore it. 
 # For now, let's keep it tracked as "default config".
+vendor/

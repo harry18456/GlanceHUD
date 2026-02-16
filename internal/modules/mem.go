@@ -1,6 +1,8 @@
 package modules
 
 import (
+	"time"
+
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
@@ -12,6 +14,14 @@ func NewMemModule() *MemModule {
 
 func (m *MemModule) ID() string {
 	return "mem"
+}
+
+func (m *MemModule) Interval() time.Duration {
+	return 2 * time.Second
+}
+
+func (m *MemModule) ApplyConfig(props map[string]interface{}) {
+	// No config
 }
 
 type MemData struct {

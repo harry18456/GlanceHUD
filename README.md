@@ -1,144 +1,98 @@
-# GlanceHUD (v3)
+# GlanceHUD
 
-**GlanceHUD** 是一個輕量級、無邊框、半透明的 Windows 桌面懸浮監控儀表板。專為需要隨時掌握系統狀態（CPU、記憶體、硬碟、網路）但不想被複雜介面干擾的使用者設計。
+![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go)
+![Wails Version](<https://img.shields.io/badge/Wails-v3_(Alpha)-red?style=flat-square>)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+![Platform](https://img.shields.io/badge/Platform-Windows-blue?style=flat-square&logo=windows)
 
-基於 **Wails v3 (Alpha)**、**React** 與 **Tailwind CSS** 構建。
+**GlanceHUD** 是一個現代化、模組化的 Windows 桌面懸浮監控儀表板。
+專為需要隨時掌握系統狀態（CPU、記憶體、硬碟、網路），但追求極簡、無干擾體驗的使用者設計。
 
-![Screenshot](screenshot.png) <!-- 你之後可以補上截圖 -->
+![Screenshot](screenshot.png)
 
-## ✨ 主要功能
+---
 
+## 🚀 專案願景 (Project Vision)
+
+我們的最終目標是打造一個 **「通用監控平台 (Universal Monitoring Platform)」**，而不僅僅是一個寫死的系統監控工具。
+
+### 核心理念
+
+1.  **Data-Driven UI**: 前端只是「畫布」，後端決定「畫什麼」。新增功能完全由後端驅動，前端無需修改程式碼。
+2.  **真正的 HUD 體驗**: 支援透明度控制、滑鼠穿透 (Click-through)、以及自由拖放佈局，讓資訊懸浮於視窗之上卻不阻礙工作。
+3.  **開放生態系**: 透過標準化的協議 (Protocol) 與 HTTP API，允許第三方應用接入數據或開發插件。
+
+---
+
+## 🗺️ 開發路線圖 (Roadmap)
+
+### Phase 1: 基礎建設 (Foundation) ✅ 已完成
+
+- [x] **Wails v3 + React 架構**: 建立高效能的跨平台基礎。
+- [x] **模組化後端**: 實作 CPU, RAM, Disk, Net 獨立模組。
+- [x] **推播式架構 (Push-Based)**: 每個模組獨立運作，主動推播數據，互不影響。
+- [x] **跨平台支援**: 自動偵測 OS 路徑與各類系統呼叫。
+
+### Phase 2: 標準化與協議 (Standardization) 🚧 進行中
+
+- [ ] **原子化顯示組件 (Atomic Display Protocol)**:
+  - 定義通用且原子化的 UI 元件 (如 `CircularGauge`, `Sparkline`)。
+  - **事件驅動更新 (Event-Driven Updates)**:
+    - **Manifest (Init)**: 定義 UI 結構 `[{ id: "cpu", type: "CircularGauge", props: {...} }]`。
+    - **Data Patch (Update)**: 僅推播變動數據 `{ updates: { "cpu": { value: 45.2 } } }`。
+- [ ] **設定協議 (Config Protocol)**: 模組回傳 Schema，前端自動產生設定表單。
+- [ ] **效能優化**: 後端實作 **Diff Check**，僅在數據變化超過閾值時推播更新。
+
+### Phase 3: 進階 HUD 體驗 (Advanced HUD) 📅 規劃中
+
+- [ ] **System Tray 整合**: 支援縮小到系統列、右鍵選單控制。
+- [ ] **視窗控制與模式切換**:
+  - **鎖定模式**: 透明背景、滑鼠穿透 (Click-through)。
+  - **編輯模式**: 透過 **全域快捷鍵** 或 Tray 切換，可拖放模組位置 (Layout Editor)。
+
+### Phase 4: 生態系與擴充 (Ecosystem) 📅 規劃中
+
+- [ ] **HTTP API Endpoint**: 開放 JSON API，讓 GlanceHUD 成為 **開發者的 Desktop Dashboard** (例如：用 Python 腳本推送訓練進度到 HUD 顯示)。
+- [ ] **插件系統**: 允許載入外部編譯的 Go Plugin。
+
+---
+
+## ✨ 目前功能 (Current Features)
+
+- **Zero-Config Start (即裝即用)**: 預設設定已最佳化，無需繁瑣配置即可開始使用。
 - **極簡設計**: 無邊框、背景透明、磨砂玻璃質感 (Backdrop Blur)。
-- **總是置頂**: 不會被其他視窗遮擋，適合放在副螢幕或角落。
-- **模組化架構**: 資訊卡片（Widgets）各自獨立，易於擴充。
-- **自訂設定**:
-  - **開關模組**: 點擊設定圖示 (⚙️) 即可勾選要顯示的資訊。
-  - **拖曳排序**: 在設定選單中拖曳調整顯示順序。
-  - **即時生效**: 所有變更都會自動儲存 (Config Persistence)。
-- **目前支援模組**:
-  - 🚀 **Processor (CPU)**: 即時負載百分比。
-  - 🧠 **Memory (RAM)**: 使用率與剩餘容量。
-  - 💾 **Disk (C:)**: 系統碟空間監控。
-  - 🌐 **Network**: 即時上傳/下載速度。
+- **獨立更新頻率**: CPU 每秒更新，硬碟每 10 秒更新，效能最佳化。
+- **熱更新設定 (Hot Reload)**: 切換監控路徑或開關模組，無需重啟程式。
+- **支援模組**:
+  - 🚀 **Processor**: CPU 負載。
+  - 🧠 **Memory**: RAM 使用率。
+  - 💾 **Disk**: 支援多磁區偵測與指定路徑。
+  - 🌐 **Network**: 即時網速。
 
-## 📊 模組實作細節 (Implementation Details)
+---
 
-GlanceHUD 使用 Go 的 [gopsutil](https://github.com/shirou/gopsutil) 庫來獲取跨平台的系統資訊。
-
-| 模組 (Module) | 資訊內容 (Metrics)                   | 實作方式 / 函式庫 (Library)                           |
-| :------------ | :----------------------------------- | :---------------------------------------------------- |
-| **Processor** | CPU 總使用率 (%)                     | `cpu.Percent(0, false)`                               |
-| **Memory**    | RAM 使用率 (%) <br> 使用量/總量 (GB) | `mem.VirtualMemory()`                                 |
-| **Disk**      | 磁碟使用率 (%) <br> 使用量/總量 (GB) | `disk.Usage("C:\\")`                                  |
-| **Network**   | 上傳/下載速度 (KB/s)                 | `net.IOCounters(false)` <br> _(計算兩次採樣的時間差)_ |
-| **Config**    | 設定檔讀寫 (JSON)                    | `encoding/json`, `os.ReadFile`                        |
-| **Frontend**  | UI 渲染與動畫                        | React, Tailwind CSS, Framer Motion                    |
-
-## 🛠️ 開發與安裝
+## 🛠️ 開發與安裝 (Development)
 
 ### 前置需求
 
 - Go 1.25+
 - Node.js 18+
-- [Wails v3 CLI](https://v3.wails.io/installation) (`go install github.com/wailsapp/wails/v3/cmd/wails3@latest`)
-- [Task](https://taskfile.dev/) (`go install github.com/go-task/task/v3/cmd/task@latest`)
+- [Wails v3 CLI (Alpha)](https://v3.wails.io/installation)
+  > **注意**: 本專案依賴 Wails v3 Alpha 版本，API 變動較大，請確保安裝最新版本。
 
 ### 啟動開發環境
 
 ```bash
 # 在專案根目錄
-cd GlanceHUD
-
-# 啟動後端與前端 (支援 HMR)
 wails3 dev
 ```
 
-### 建置發布 (Windows)
+### 建置發布
 
 ```bash
-task windows:build
-# 產出的執行檔位於 bin/GlanceHUD.exe
+go build
+# 產出 GlanceHUD.exe
 ```
-
-## 🧩 如何新增資訊模組 (How to add a new module)
-
-GlanceHUD 採用模組化設計，新增一個資訊卡片只需要 3 個步驟：
-
-### 1. Backend: 實作 Module 介面
-
-在 `internal/modules/` 新增一個 `.go` 檔案（例如 `uptime.go`），並實作 `Module` 介面：
-
-```go
-package modules
-
-type UptimeModule struct{}
-
-func NewUptimeModule() *UptimeModule {
-    return &UptimeModule{}
-}
-
-func (m *UptimeModule) ID() string {
-    return "uptime" // 獨一無二的 ID
-}
-
-func (m *UptimeModule) Update() (*ModuleData, error) {
-    // 獲取數據的邏輯...
-    return &ModuleData{
-        ID:    m.ID(),
-        Label: "System Uptime",
-        Value: "5 days 2 hours", // 可以是任何類型
-        Icon:  "Clock",          // Lucide Icon 名稱
-    }, nil
-}
-```
-
-### 2. Backend: 註冊模組
-
-在 `systemservice.go` 的 `NewSystemService` 中註冊新模組：
-
-```go
-return &SystemService{
-    // ...
-    modules: map[string]modules.Module{
-        "cpu":    modules.NewCPUModule(),
-        // ...
-        "uptime": modules.NewUptimeModule(), // 新增這行
-    },
-}
-```
-
-### 3. Frontend: 建立 React 元件
-
-1.  在 `frontend/src/widgets/` 建立 `UptimeWidget.tsx`：
-
-    ```tsx
-    import { Clock } from "lucide-react";
-    import { StatCard } from "../components/StatCard";
-
-    export function UptimeWidget({ data }: { data: any }) {
-      return (
-        <StatCard
-          icon={Clock}
-          label="Uptime"
-          value={0} // 這裡可以根據 data.value 顯示
-          sub={data.value} // 顯示文字
-        />
-      );
-    }
-    ```
-
-2.  在 `frontend/src/WidgetRegistry.ts` 中註冊：
-
-    ```typescript
-    import { UptimeWidget } from "./widgets/UptimeWidget";
-
-    export const WIDGET_REGISTRY = {
-      // ...
-      uptime: UptimeWidget,
-    };
-    ```
-
-完成！重啟程式後，你就可以在設定選單中看到並開啟新的模組了。
 
 ## 📜 License
 

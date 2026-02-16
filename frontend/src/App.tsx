@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Settings2 } from "lucide-react";
 import { SystemService } from "../bindings/glancehud";
+import { Events } from "@wailsio/runtime";
 import { AppConfig, ModuleData } from "../bindings/glancehud/internal/modules/models";
 import { WIDGET_REGISTRY } from "./WidgetRegistry";
 import { SettingsModal } from "./components/SettingsModal";
@@ -37,22 +38,24 @@ function App() {
     }
   };
 
-  // Fetch stats loop
-  const fetchStats = useCallback(async () => {
-    try {
-      const data = await SystemService.GetSystemStats();
-      setStats(data);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-    }
-  }, []);
-
   useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 1500); // 1.5s refresh
-    return () => clearInterval(interval);
-  }, [fetchStats]);
+    // Initial fetch to populate data quickly
+    SystemService.GetSystemStats().then(setStats).catch(console.error);
+
+    // Listen for events
+    const unsub = Events.On("stats:update", (event: any) => {
+      const data = event.data as ModuleData;
+      setStats((prev) => {
+        const index = prev.findIndex((s) => s.id === data.id);
+        if (index === -1) return [...prev, data];
+        const newStats = [...prev];
+        newStats[index] = data;
+        return newStats;
+      });
+    });
+
+    return () => unsub();
+  }, []);
 
   if (!config) {
     return (

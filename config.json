@@ -11,9 +11,7 @@
     {
       "id": "disk",
       "enabled": true,
-      "props": {
-        "path": "C:\\"
-      }
+      "props": {}
     },
     {
       "id": "net",
