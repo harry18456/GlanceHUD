@@ -11,15 +11,28 @@ interface Props {
 }
 
 export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
+    // Dynamic Prop Override: Merge static config.props with dynamic data.props
+    const effectiveConfig = {
+        ...config,
+        props: {
+            ...config.props,
+            ...data?.props
+        }
+    };
+
     switch (config.type) {
         case "gauge":
-            return <GaugeRenderer config={config} data={data} />;
+            return <GaugeRenderer config={effectiveConfig} data={data} />;
         case "bar-list":
-            return <BarListRenderer config={config} data={data} />;
+            return <BarListRenderer config={effectiveConfig} data={data} />;
         case "key-value":
-            return <KVRenderer config={config} data={data} />;
+            return <KVRenderer config={effectiveConfig} data={data} />;
         case "text":
-            return <TextRenderer config={config} data={data} />;
+            return <TextRenderer config={effectiveConfig} data={data} />;
+        // Placeholders for Phase 3
+        case "group":
+        case "sparkline":
+            return <div className="text-xs text-gray-500">[Pending: {config.type}]</div>;
         default:
             return (
                 <div className="p-4 text-red-500">
