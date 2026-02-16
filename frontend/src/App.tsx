@@ -1,191 +1,69 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
-import { Cpu, MemoryStick, HardDrive, ArrowUpDown, type LucideIcon } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Settings2 } from "lucide-react";
 import { SystemService } from "../bindings/glancehud";
-
-/* ── Colour helpers ── */
-function accentForValue(v: number) {
-  if (v < 50) return "var(--color-neon-green)";
-  if (v < 80) return "var(--color-neon-yellow)";
-  return "var(--color-neon-pink)";
-}
-
-function glowClassForValue(v: number) {
-  if (v < 50) return "neon-glow-green";
-  if (v < 80) return "neon-glow-yellow";
-  return "neon-glow-pink";
-}
-
-/* ── AnimatedNumber ── */
-function AnimatedNumber({ value, decimals = 1 }: { value: number; decimals?: number }) {
-  const mv = useMotionValue(0);
-  const display = useTransform(mv, (v) => v.toFixed(decimals));
-
-  useEffect(() => {
-    const ctrl = animate(mv, value, { duration: 0.8, ease: "easeOut" });
-    return ctrl.stop;
-  }, [value, mv]);
-
-  return <motion.span>{display}</motion.span>;
-}
-
-/* ── RingProgress ── */
-function RingProgress({
-  value,
-  colour,
-  size = 72,
-  strokeWidth = 5,
-}: {
-  value: number;
-  colour: string;
-  size?: number;
-  strokeWidth?: number;
-}) {
-  const r = (size - strokeWidth) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ - (value / 100) * circ;
-
-  return (
-    <svg width={size} height={size} className="drop-shadow-md">
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        className="ring-track"
-        strokeWidth={strokeWidth}
-      />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke={colour}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        initial={{ strokeDashoffset: circ }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        style={{
-          transform: "rotate(-90deg)",
-          transformOrigin: "center",
-          filter: `drop-shadow(0 0 4px ${colour})`,
-        }}
-      />
-    </svg>
-  );
-}
-
-/* ── StatCard ── */
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  sub: string;
-}) {
-  const accent = accentForValue(value);
-  const glowClass = glowClassForValue(value);
-
-  return (
-    <div className="flex items-center gap-4">
-      <div className="relative flex items-center justify-center">
-        <RingProgress value={value} colour={accent} />
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ color: accent }}
-        >
-          <Icon size={22} />
-        </div>
-      </div>
-      <div className="flex flex-col">
-        <span className="text-[10px] font-mono uppercase tracking-widest text-white/40">
-          {label}
-        </span>
-        <div className="flex items-baseline gap-1">
-          <span className={`text-3xl font-mono font-bold ${glowClass}`} style={{ color: accent }}>
-            <AnimatedNumber value={value} />
-          </span>
-          <span className="text-sm font-mono text-white/30">%</span>
-        </div>
-        <span className="text-[10px] font-mono text-white/25">{sub}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ── NetCard (compact, no ring) ── */
-function NetCard({ up, down }: { up: number; down: number }) {
-  const accent = "var(--color-neon-cyan)";
-  return (
-    <div className="flex items-center gap-4">
-      <div className="relative flex items-center justify-center w-[72px] h-[72px]">
-        <div style={{ color: accent }}>
-          <ArrowUpDown size={26} />
-        </div>
-      </div>
-      <div className="flex flex-col gap-1">
-        <span className="text-[10px] font-mono uppercase tracking-widest text-white/40">
-          Network
-        </span>
-        <div className="flex gap-4">
-          <div className="flex items-baseline gap-1">
-            <span className="text-[10px] font-mono text-white/30">▲</span>
-            <span className="text-lg font-mono font-bold neon-glow-green" style={{ color: "var(--color-neon-green)" }}>
-              <AnimatedNumber value={up} />
-            </span>
-            <span className="text-[10px] font-mono text-white/25">KB/s</span>
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-[10px] font-mono text-white/30">▼</span>
-            <span className="text-lg font-mono font-bold" style={{ color: accent }}>
-              <AnimatedNumber value={down} />
-            </span>
-            <span className="text-[10px] font-mono text-white/25">KB/s</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Main App ── */
-interface SystemStats {
-  cpuUsage: number;
-  ramUsage: number;
-  ramTotal: number;
-  ramUsed: number;
-  diskUsage: number;
-  diskTotal: number;
-  diskUsed: number;
-  netUp: number;
-  netDown: number;
-}
+import { AppConfig, ModuleData } from "../bindings/glancehud/internal/modules/models";
+import { WIDGET_REGISTRY } from "./WidgetRegistry";
+import { SettingsModal } from "./components/SettingsModal";
 
 function App() {
-  const [stats, setStats] = useState<SystemStats | null>(null);
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [stats, setStats] = useState<ModuleData[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
+  // Load config on startup
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const cfg = await SystemService.GetConfig();
+        setConfig(cfg);
+      } catch (err) {
+        console.error("Failed to load config:", err);
+        setError("Failed to load config");
+      }
+    }
+    loadConfig();
+  }, []);
+
+  // Save config
+  const handleSaveConfig = async (newConfig: AppConfig) => {
+    try {
+      await SystemService.SaveConfig(newConfig);
+      setConfig(newConfig);
+    } catch (err) {
+      console.error("Failed to save config:", err);
+      // specific error handling
+    }
+  };
+
+  // Fetch stats loop
   const fetchStats = useCallback(async () => {
     try {
       const data = await SystemService.GetSystemStats();
-      setStats(data as SystemStats);
+      setStats(data);
       setError(null);
     } catch (err) {
-      setError(String(err));
+      console.error(err);
     }
   }, []);
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(fetchStats, 1500);
+    const interval = setInterval(fetchStats, 1500); // 1.5s refresh
     return () => clearInterval(interval);
   }, [fetchStats]);
+
+  if (!config) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center text-white/20 font-mono text-xs">
+        Loading config...
+      </div>
+    );
+  }
+
+  // Create a map for O(1) stats lookup
+  const statsMap = new Map(stats.map((s) => [s.id, s]));
 
   return (
     <div className="w-screen h-screen bg-transparent flex items-center justify-center p-3">
@@ -215,64 +93,57 @@ function App() {
               GlanceHUD
             </span>
           </div>
-          <span className="text-[9px] font-mono text-white/15 no-drag">
-            v0.2.0
-          </span>
+          <div className="flex items-center gap-3 no-drag">
+             <span className="text-[9px] font-mono text-white/15">
+              v0.3.0
+            </span>
+            <button
+               onClick={() => setIsSettingsOpen(true)}
+               className="text-white/20 hover:text-white transition-colors"
+            >
+              <Settings2 size={14} />
+            </button>
+          </div>
         </div>
 
         <div className="mx-4 h-[1px] bg-white/[0.04]" />
 
         {/* Content */}
-        <div className="px-4 py-4">
-          <AnimatePresence mode="wait">
-            {error ? (
-              <motion.div
-                key="error"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-xs font-mono text-neon-pink/80 text-center py-4"
-              >
-                ⚠ {error}
-              </motion.div>
-            ) : !stats ? (
-              <motion.div
-                key="loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-xs font-mono text-white/20 text-center py-4"
-              >
-                Initializing...
-              </motion.div>
-            ) : (
-              <motion.div
-                key="stats"
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="flex flex-col gap-3"
-              >
-                <StatCard
-                  icon={Cpu}
-                  label="Processor"
-                  value={stats.cpuUsage}
-                  sub="CPU Load"
-                />
-                <StatCard
-                  icon={MemoryStick}
-                  label="Memory"
-                  value={stats.ramUsage}
-                  sub={`${stats.ramUsed.toFixed(1)} / ${stats.ramTotal.toFixed(1)} GB`}
-                />
-                <StatCard
-                  icon={HardDrive}
-                  label="Disk C:"
-                  value={stats.diskUsage}
-                  sub={`${stats.diskUsed.toFixed(1)} / ${stats.diskTotal.toFixed(0)} GB`}
-                />
-                <NetCard up={stats.netUp} down={stats.netDown} />
-              </motion.div>
-            )}
+        <div className="px-4 py-4 flex flex-col gap-3 min-h-[120px]">
+          <AnimatePresence mode="popLayout" initial={false}>
+            {config.widgets.map((widgetCfg) => {
+              if (!widgetCfg.enabled) return null;
+
+              const WidgetComponent = WIDGET_REGISTRY[widgetCfg.id];
+              const data = statsMap.get(widgetCfg.id);
+
+              if (!WidgetComponent || !data) return null;
+
+              return (
+                <motion.div
+                  key={widgetCfg.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                >
+                  <WidgetComponent data={data} />
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
+
+          {stats.length === 0 && !error && (
+             <div className="text-center text-xs text-white/20 font-mono py-4">Waiting for data...</div>
+          )}
+           
+           {/* If all disabled */}
+           {config.widgets.every(w => !w.enabled) && (
+             <div className="text-center text-xs text-white/20 font-mono py-8">
+               No indicators active.
+             </div>
+           )}
         </div>
 
         {/* Bottom accent line */}
@@ -283,6 +154,17 @@ function App() {
               "linear-gradient(90deg, transparent, var(--color-neon-pink), var(--color-neon-green), transparent)",
           }}
         />
+
+        {/* Settings Modal Overlay */}
+        <AnimatePresence>
+          {isSettingsOpen && (
+            <SettingsModal
+              config={config}
+              onSave={handleSaveConfig}
+              onClose={() => setIsSettingsOpen(false)}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

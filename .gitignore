@@ -1,6 +1,37 @@
-.task
-bin
-frontend/dist
-frontend/node_modules
-build/linux/appimage/build
+# Wails
+bin/
+build/bin/
+build/linux/appimage/build/
 build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
+.task
+
+# Binaries
+GlanceHUD.exe
+*.exe
+*.dll
+
+# Frontend
+frontend/dist/
+frontend/node_modules/
+frontend/package-lock.json.backup
+frontend/.vite/
+
+# Go
+go.work
+go.work.sum
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (Local dev)
+# config.json should probably be committed if it's default, 
+# but if it contains local user prefs we might ignore it. 
+# For now, let's keep it tracked as "default config".

@@ -1,91 +1,74 @@
 package main
 
 import (
-	"math"
-	"time"
+	"glancehud/internal/modules"
 
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/disk"
-	"github.com/shirou/gopsutil/v4/mem"
-	"github.com/shirou/gopsutil/v4/net"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// SystemService exposes system stats to the frontend.
+// SystemService now acts as the orchestrator
 type SystemService struct {
-	prevNetIn  uint64
-	prevNetOut uint64
-	prevTime   time.Time
+	configService *modules.ConfigService
+	modules       map[string]modules.Module
 }
 
-// SystemStats holds the system performance metrics.
-type SystemStats struct {
-	CPUUsage  float64 `json:"cpuUsage"`  // CPU usage percentage (0-100)
-	RAMUsage  float64 `json:"ramUsage"`  // RAM usage percentage (0-100)
-	RAMTotal  float64 `json:"ramTotal"`  // Total RAM in GB
-	RAMUsed   float64 `json:"ramUsed"`   // Used RAM in GB
-	DiskUsage float64 `json:"diskUsage"` // Disk usage percentage (0-100)
-	DiskTotal float64 `json:"diskTotal"` // Total disk in GB
-	DiskUsed  float64 `json:"diskUsed"`  // Used disk in GB
-	NetUp     float64 `json:"netUp"`     // Upload speed KB/s
-	NetDown   float64 `json:"netDown"`   // Download speed KB/s
+func NewSystemService(app *application.App) *SystemService {
+	// Get app data directory for config
+	// wails3 beta doesn't have a direct helper yet?
+	// For simplicity, let's use "." or try to find a good path.
+	// Ideally application.Get().Paths().Config() but let's assume relative for portable or user home.
+	configDir := "."
+
+	cs, _ := modules.NewConfigService(configDir)
+
+	return &SystemService{
+		configService: cs,
+		modules: map[string]modules.Module{
+			"cpu":  modules.NewCPUModule(),
+			"mem":  modules.NewMemModule(),
+			"disk": modules.NewDiskModule("C:\\"), // TODO: Make dynamic based on config
+			"net":  modules.NewNetModule(),
+		},
+	}
 }
 
-// GetSystemStats returns current CPU, RAM, disk and network stats.
-func (s *SystemService) GetSystemStats() (*SystemStats, error) {
-	cpuPercent, err := cpu.Percent(0, false)
-	if err != nil {
-		return nil, err
-	}
+// GetConfig returns the current app configuration.
+func (s *SystemService) GetConfig() modules.AppConfig {
+	return s.configService.GetConfig()
+}
 
-	vmStat, err := mem.VirtualMemory()
-	if err != nil {
-		return nil, err
-	}
+// SaveConfig updates and saves the configuration.
+func (s *SystemService) SaveConfig(config modules.AppConfig) error {
+	// Logic to re-init modules if props changed could go here
+	// For now just save
+	return s.configService.UpdateConfig(config)
+}
 
-	// Disk: use C:\ on Windows, / on others
-	diskStat, err := disk.Usage("C:\\")
-	if err != nil {
-		// Fallback to root
-		diskStat, err = disk.Usage("/")
+// GetSystemStats iterates over enabled modules and returns their data.
+func (s *SystemService) GetSystemStats() ([]modules.ModuleData, error) {
+	config := s.configService.GetConfig()
+	results := []modules.ModuleData{}
+
+	for _, widgetCfg := range config.Widgets {
+		if !widgetCfg.Enabled {
+			continue
+		}
+
+		mod, exists := s.modules[widgetCfg.ID]
+		if !exists {
+			// Maybe initialize on demand if it's dynamic like "disk D:\"
+			// For MVP, just skip
+			continue
+		}
+
+		data, err := mod.Update()
 		if err != nil {
-			diskStat = &disk.UsageStat{}
+			// Log error but continue?
+			// For now, return error or append partial
+			continue
 		}
+		results = append(results, *data)
 	}
 
-	// Network: calculate speed from delta
-	netCounters, err := net.IOCounters(false)
-	var netUp, netDown float64
-	if err == nil && len(netCounters) > 0 {
-		now := time.Now()
-		totalIn := netCounters[0].BytesRecv
-		totalOut := netCounters[0].BytesSent
-
-		if !s.prevTime.IsZero() {
-			elapsed := now.Sub(s.prevTime).Seconds()
-			if elapsed > 0 {
-				netDown = float64(totalIn-s.prevNetIn) / elapsed / 1024 // KB/s
-				netUp = float64(totalOut-s.prevNetOut) / elapsed / 1024 // KB/s
-			}
-		}
-		s.prevNetIn = totalIn
-		s.prevNetOut = totalOut
-		s.prevTime = now
-	}
-
-	return &SystemStats{
-		CPUUsage:  round(cpuPercent[0], 1),
-		RAMUsage:  round(vmStat.UsedPercent, 1),
-		RAMTotal:  round(float64(vmStat.Total)/1024/1024/1024, 1),
-		RAMUsed:   round(float64(vmStat.Used)/1024/1024/1024, 1),
-		DiskUsage: round(diskStat.UsedPercent, 1),
-		DiskTotal: round(float64(diskStat.Total)/1024/1024/1024, 0),
-		DiskUsed:  round(float64(diskStat.Used)/1024/1024/1024, 1),
-		NetUp:     round(netUp, 1),
-		NetDown:   round(netDown, 1),
-	}, nil
-}
-
-func round(val float64, n int) float64 {
-	pow := math.Pow(10, float64(n))
-	return math.Round(val*pow) / pow
+	return results, nil
 }

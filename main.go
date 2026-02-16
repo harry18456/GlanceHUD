@@ -11,11 +11,14 @@ import (
 var assets embed.FS
 
 func main() {
+	// custom service
+	systemService := NewSystemService(nil)
+
 	app := application.New(application.Options{
 		Name:        "GlanceHUD",
 		Description: "Lightweight system-vitals floating HUD",
 		Services: []application.Service{
-			application.NewService(&SystemService{}),
+			application.NewService(systemService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

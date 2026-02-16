@@ -1,0 +1,24 @@
+{
+  "widgets": [
+    {
+      "id": "cpu",
+      "enabled": true
+    },
+    {
+      "id": "mem",
+      "enabled": true
+    },
+    {
+      "id": "disk",
+      "enabled": true,
+      "props": {
+        "path": "C:\\"
+      }
+    },
+    {
+      "id": "net",
+      "enabled": true
+    }
+  ],
+  "theme": "neon"
+}
