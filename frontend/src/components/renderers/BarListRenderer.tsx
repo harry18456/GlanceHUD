@@ -1,38 +1,85 @@
-import React from 'react';
-import { RenderConfig, DataPayload, BarListItem } from "../../types";
+import React from "react";
+import { motion } from "framer-motion";
+import { RenderConfig, DataPayload } from "../../types";
+import { statusColor } from "../../lib/statusColor";
 
 interface Props {
-    config: any;
-    data?: any;
+  config: RenderConfig;
+  data?: DataPayload;
 }
 
 export const BarListRenderer: React.FC<Props> = ({ config, data }) => {
-    const items = (data?.items as any[]) || [];
-    const headers = (config.props?.headers as string[]) || [];
+  const items = Array.isArray(data?.items)
+    ? (data.items as Array<{ label: string; percent: number; value: string }>)
+    : [];
 
-    return (
-        <div className="p-4 w-full h-full flex flex-col gap-3 font-mono text-sm max-h-60 overflow-y-auto custom-scrollbar">
-             {headers.length > 0 && (
-                <div className="flex justify-between text-xs text-gray-500 mb-1 border-b border-gray-700/50 pb-1">
-                    {headers.map((h, i) => <span key={i}>{h}</span>)}
-                </div>
-            )}
-            
-            {items.map((item, idx) => (
-                <div key={idx} className="flex flex-col gap-1">
-                    <div className="flex justify-between items-center mb-1">
-                        <span className="font-bold truncate w-20">{item.label}</span>
-                         <span className="text-xs text-gray-400">{item.value}</span>
-                    </div>
-                    {/* Progress Bar */}
-                    <div className="w-full bg-gray-700/30 h-1.5 rounded-full overflow-hidden">
-                        <div 
-                            className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${item.percent}%` }}
-                        />
-                    </div>
-                </div>
-            ))}
+  return (
+    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+      {config.title && (
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: "var(--text-tertiary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          {config.title}
+        </span>
+      )}
+
+      {items.map((item) => (
+        <div key={item.label} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {item.label}
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--text-secondary)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {item.value}
+            </span>
+          </div>
+
+          {/* Progress bar */}
+          <div
+            style={{
+              width: "100%",
+              height: 4,
+              borderRadius: 2,
+              background: "rgba(255,255,255,0.06)",
+              overflow: "hidden",
+            }}
+          >
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${item.percent}%` }}
+              transition={{ type: "spring", stiffness: 80, damping: 18 }}
+              style={{
+                height: "100%",
+                borderRadius: 2,
+                background: statusColor(item.percent),
+              }}
+            />
+          </div>
         </div>
-    );
+      ))}
+
+      {items.length === 0 && (
+        <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>No Data</span>
+      )}
+    </div>
+  );
 };

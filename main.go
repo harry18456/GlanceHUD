@@ -36,10 +36,11 @@ func main() {
 	// Create the HUD window — frameless, transparent, always-on-top
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:     "GlanceHUD",
-		Width:     400,
-		Height:    460,
-		MinWidth:  300,
-		MinHeight: 200,
+		Width:  400,
+		Height: 300,
+
+		// Disable manual resize — size is driven by content via frontend
+		DisableResize: true,
 
 		// Core: frameless + always-on-top
 		Frameless:   true,

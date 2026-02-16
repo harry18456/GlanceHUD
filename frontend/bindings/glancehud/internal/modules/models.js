@@ -26,6 +26,13 @@ export class AppConfig {
              */
             this["theme"] = "";
         }
+        if (!("minimalMode" in $$source)) {
+            /**
+             * @member
+             * @type {boolean}
+             */
+            this["minimalMode"] = false;
+        }
 
         Object.assign(this, $$source);
     }

@@ -1,9 +1,6 @@
 import React from 'react';
 import { RenderConfig, DataPayload } from "../types";
 import { GaugeRenderer } from './renderers/GaugeRenderer';
-// import { BarListRenderer } from './renderers/BarListRenderer';
-// import { KVRenderer } from './renderers/KVRenderer';
-// import { TextRenderer } from './renderers/TextRenderer';
 import { BarListRenderer } from './renderers/BarListRenderer';
 import { KVRenderer } from './renderers/KVRenderer';
 import { TextRenderer } from './renderers/TextRenderer';

@@ -6,3 +6,7 @@ import * as SystemService from "./systemservice.js";
 export {
     SystemService
 };
+
+export {
+    ModuleInfo
+} from "./models.js";

@@ -35,13 +35,14 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 - [x] **推播式架構 (Push-Based)**
 - [x] **跨平台支援 (Cross-Platform)**
 
-### Phase 2: 標準化與協議 (Standardization) 🚧 進行中
+### Phase 2: 標準化與協議 (Standardization) ✅ 已完成
 
 - [x] **原子化顯示組件 (Atomic Display Protocol)**:
-  - 定義通用且原子化的 UI 元件 (如 `CircularGauge`, `Sparkline`)。
-  - **事件驅動更新**: 使用 Manifest (結構) 與 Data Patch (數據) 分離策略。
-- [x] **設定協議 (Config Protocol)**: 模組回傳 Schema，前端自動產生設定表單。
-- [x] **效能優化**: 後端實作 **Diff Check**。
+  - 定義通用且原子化的 UI 元件 (`gauge`, `bar-list`, `key-value`, `text`)。
+  - **事件驅動更新**: 使用 RenderConfig (結構) 與 DataPayload (數據) 分離策略。
+- [x] **設定協議 (Config Protocol)**: 模組回傳 Schema，前端自動產生設定表單 (`text`, `number`, `bool`, `select`, `checkboxes`)。
+- [x] **效能優化**: 後端實作 **Diff Check** (`reflect.DeepEqual`)。
+- [x] **Modern Minimal UI**: Glass-morphism 設計、狀態色系、Framer Motion 動畫、內容自適應視窗大小。
 
 ### Phase 3: 進階 HUD 體驗 (Advanced HUD) 📅 規劃中
 
@@ -60,16 +61,17 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 
 ## ✨ 目前功能 (Current Features)
 
-- **Zero-Config Start (即裝即用)**: 預設設定已最佳化，無需繁瑣配置即可開始使用。
-- **極簡設計**: 無邊框、背景透明、磨砂玻璃質感 (Backdrop Blur)。
-- **極簡模式 (Minimalist Mode)**: 支援一鍵切換「純文字顯示」，僅保留數據與標題，極致降低視覺干擾。
-- **獨立更新頻率**: CPU 每秒更新，硬碟每 10 秒更新，效能最佳化。
-- **熱更新設定 (Hot Reload)**: 切換監控路徑或開關模組，無需重啟程式。
+- **Zero-Config Start (即裝即用)**: 模組自動偵測系統分割區並產生預設設定，無需手動配置。
+- **Glass-morphism UI**: 無邊框、背景透明、磨砂玻璃質感、狀態色系 (green → amber → red)。
+- **全域極簡模式 (Minimal Mode)**: 設定中一鍵切換，所有模組改為精簡 key-value 顯示。
+- **內容自適應視窗**: 視窗高度自動配合內容，無固定大小限制。
+- **獨立更新頻率**: CPU 每秒、Memory 每 2 秒、Disk 每 10 秒、Network 每秒。
+- **熱更新設定 (Hot Reload)**: 開關模組、切換極簡模式、變更磁碟選擇，存檔即生效，無需重啟。
 - **支援模組**:
-  - 🚀 **Processor**: CPU 負載。
-  - 🧠 **Memory**: RAM 使用率。
-  - 💾 **Disk**: 支援多磁區偵測與指定路徑。
-  - 🌐 **Network**: 即時網速。
+  - **CPU**: 即時負載 (Gauge + RingProgress 動畫)。
+  - **Memory**: RAM 使用率 (Gauge + AnimatedNumber)。
+  - **Disk**: 多磁區偵測，Checkbox 多選顯示 (Bar-list + Spring 動畫)。
+  - **Network**: 即時上下行網速 (Key-value + Icon)。
 
 ---
 

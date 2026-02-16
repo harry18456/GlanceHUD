@@ -27,12 +27,30 @@ export interface KeyValueItem {
     icon?: string;
 }
 
+export interface ModuleInfo {
+    moduleId: string;       // short config ID: "cpu", "disk", etc.
+    config: RenderConfig;   // display template
+    enabled: boolean;       // whether the module is active
+}
+
 export interface UpdateEvent {
     id: string;
     data: DataPayload;
 }
 
-export type ConfigType = "text" | "number" | "bool" | "select" | "button";
+export interface WidgetConfig {
+    id: string;
+    enabled: boolean;
+    props?: Record<string, any>;
+}
+
+export interface AppConfig {
+    widgets: WidgetConfig[];
+    theme: string;
+    minimalMode: boolean;
+}
+
+export type ConfigType = "text" | "number" | "bool" | "select" | "checkboxes" | "button";
 
 export interface ConfigSchema {
     name?: string;

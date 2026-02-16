@@ -10,15 +10,12 @@ import (
 )
 
 type DiskModule struct {
-	path        string // Empty means auto-detect all
-	minimalMode bool
+	selectedPaths []string // Empty means auto-detect all
+	minimalMode   bool
 }
 
 func NewDiskModule(path string) *DiskModule {
-	return &DiskModule{
-		path:        path,
-		minimalMode: false,
-	}
+	return &DiskModule{}
 }
 
 func (m *DiskModule) ID() string {
@@ -30,8 +27,14 @@ func (m *DiskModule) Interval() time.Duration {
 }
 
 func (m *DiskModule) ApplyConfig(props map[string]interface{}) {
-	if val, ok := props["path"].(string); ok {
-		m.path = val
+	// "paths" is a []interface{} from JSON deserialization
+	if val, ok := props["paths"].([]interface{}); ok {
+		m.selectedPaths = nil
+		for _, v := range val {
+			if s, ok := v.(string); ok {
+				m.selectedPaths = append(m.selectedPaths, s)
+			}
+		}
 	}
 	if val, ok := props["minimal_mode"].(bool); ok {
 		m.minimalMode = val
@@ -39,20 +42,41 @@ func (m *DiskModule) ApplyConfig(props map[string]interface{}) {
 }
 
 func (m *DiskModule) GetConfigSchema() []protocol.ConfigSchema {
+	options := discoverPartitions()
+
+	// Default: all partition values checked
+	defaults := make([]string, 0, len(options))
+	for _, o := range options {
+		defaults = append(defaults, o.Value)
+	}
+
 	return []protocol.ConfigSchema{
 		{
-			Name:    "path",
-			Label:   "磁碟路徑 (留空自動偵測)",
-			Type:    protocol.ConfigText,
-			Default: "",
-		},
-		{
-			Name:    "minimal_mode",
-			Label:   "極簡模式",
-			Type:    protocol.ConfigBool,
-			Default: false,
+			Name:    "paths",
+			Label:   "顯示磁碟",
+			Type:    protocol.ConfigCheckboxes,
+			Default: defaults,
+			Options: options,
 		},
 	}
+}
+
+func discoverPartitions() []protocol.SelectOption {
+	var options []protocol.SelectOption
+	partitions, err := disk.Partitions(false)
+	if err != nil {
+		return options
+	}
+	for _, p := range partitions {
+		if p.Mountpoint == "" || strings.HasPrefix(p.Mountpoint, "/snap") || strings.HasPrefix(p.Mountpoint, "/loop") {
+			continue
+		}
+		options = append(options, protocol.SelectOption{
+			Label: p.Mountpoint,
+			Value: p.Mountpoint,
+		})
+	}
+	return options
 }
 
 func (m *DiskModule) GetRenderConfig() protocol.RenderConfig {
@@ -77,30 +101,7 @@ func (m *DiskModule) GetRenderConfig() protocol.RenderConfig {
 }
 
 func (m *DiskModule) Update() (*protocol.DataPayload, error) {
-	var paths []string
-
-	if m.path != "" {
-		paths = []string{m.path}
-	} else {
-		// Auto detect physical partitions
-		partitions, err := disk.Partitions(false)
-		if err == nil {
-			for _, p := range partitions {
-				// Filter loopback, snaps, etc
-				if strings.HasPrefix(p.Mountpoint, "/snap") || strings.HasPrefix(p.Mountpoint, "/loop") {
-					continue
-				}
-				if p.Mountpoint == "" {
-					continue
-				}
-				paths = append(paths, p.Mountpoint)
-			}
-		}
-
-		if len(paths) == 0 {
-			paths = []string{"/"} // Fallback
-		}
-	}
+	paths := m.resolvePaths()
 
 	// Minimal Mode Items (KeyValue)
 	if m.minimalMode {
@@ -138,4 +139,30 @@ func (m *DiskModule) Update() (*protocol.DataPayload, error) {
 	}
 
 	return &protocol.DataPayload{Items: items}, nil
+}
+
+func (m *DiskModule) resolvePaths() []string {
+	if len(m.selectedPaths) > 0 {
+		return m.selectedPaths
+	}
+
+	// Auto detect all physical partitions
+	var paths []string
+	partitions, err := disk.Partitions(false)
+	if err == nil {
+		for _, p := range partitions {
+			if strings.HasPrefix(p.Mountpoint, "/snap") || strings.HasPrefix(p.Mountpoint, "/loop") {
+				continue
+			}
+			if p.Mountpoint == "" {
+				continue
+			}
+			paths = append(paths, p.Mountpoint)
+		}
+	}
+
+	if len(paths) == 0 {
+		paths = []string{"/"} // Fallback
+	}
+	return paths
 }

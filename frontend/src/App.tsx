@@ -1,93 +1,208 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { SystemService } from "../bindings/glancehud";
-import { RenderConfig, DataPayload, UpdateEvent } from "./types";
+import { ModuleInfo, DataPayload, UpdateEvent } from "./types";
 import { Events } from "@wailsio/runtime";
-import { UniversalWidget } from './components/UniversalWidget';
-import { SettingsModal } from './components/SettingsModal';
-import './style.css';
+import { UniversalWidget } from "./components/UniversalWidget";
+import { SettingsModal } from "./components/SettingsModal";
+import { useAutoResize } from "./lib/useAutoResize";
+import "./style.css";
+
+const fadeSlide = {
+  initial: { opacity: 0, y: 6 },
+  animate: { opacity: 1, y: 0 },
+};
 
 function App() {
-    const [configs, setConfigs] = useState<RenderConfig[]>([]);
-    const [dataMap, setDataMap] = useState<Record<string, DataPayload>>({});
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [modules, setModules] = useState<ModuleInfo[]>([]);
+  const [dataMap, setDataMap] = useState<Record<string, DataPayload>>({});
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const glassRef = useAutoResize();
 
-    useEffect(() => {
-        // 1. Get initial configuration (Templates)
-        loadModules();
+  useEffect(() => {
+    loadModules();
 
-        // 2. Listen for updates (Data Patch)
-        // Wails v3: event.data is an array of emitted args
-        const unsub = Events.On("stats:update", (event: any) => {
-             const payload = (Array.isArray(event.data) ? event.data[0] : event.data) as UpdateEvent;
-             if (payload && payload.id) {
-                 setDataMap(prev => ({
-                     ...prev,
-                     [payload.id]: payload.data
-                 }));
-             }
-        });
+    const unsub = Events.On("stats:update", (event: any) => {
+      const payload = (
+        Array.isArray(event.data) ? event.data[0] : event.data
+      ) as UpdateEvent;
+      if (payload && payload.id) {
+        setDataMap((prev) => ({
+          ...prev,
+          [payload.id]: payload.data,
+        }));
+      }
+    });
 
-        // Listen for config changes (if any) or just reload modules when settings close
-        return () => {
-            unsub();
-        };
-    }, []);
-
-    const loadModules = () => {
-        SystemService.GetModules().then((modules) => {
-            setConfigs(modules);
-            return SystemService.GetCurrentData();
-        }).then((data: any) => {
-             if (data) {
-                 if (data instanceof Map) {
-                     const obj = Object.fromEntries(data.entries());
-                     setDataMap(obj as Record<string, DataPayload>);
-                 } else {
-                     setDataMap(data);
-                 }
-             }
-        });
+    return () => {
+      unsub();
     };
+  }, []);
 
-    const handleSettingsClose = () => {
-        setIsSettingsOpen(false);
-        loadModules();
-    };
+  const loadModules = () => {
+    SystemService.GetModules()
+      .then((infos: any) => {
+        // Wails may return objects with moduleId + config shape
+        const parsed: ModuleInfo[] = (infos || []).map((i: any) => ({
+          moduleId: i.moduleId,
+          config: i.config,
+          enabled: i.enabled ?? true,
+        }));
+        setModules(parsed);
+        return SystemService.GetCurrentData();
+      })
+      .then((data: any) => {
+        if (data) {
+          if (data instanceof Map) {
+            setDataMap(Object.fromEntries(data.entries()) as Record<string, DataPayload>);
+          } else {
+            setDataMap(data);
+          }
+        }
+      });
+  };
 
-    return (
-        <div id="app" className="drag-region flex flex-col gap-4 p-4 h-screen overflow-y-auto bg-black/50 backdrop-blur-md text-white relative">
-             {/* Settings Button (Cog) */}
-             <button 
-                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-white transition-colors z-40 no-drag bg-gray-900/50 rounded-full"
-                onClick={() => setIsSettingsOpen(true)}
-             >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.159.956c.03.183.137.347.295.45.244.16.505.297.776.406.183.074.316.223.356.41l.204 1.05c.092.47-.32 1.002-.87 1.002h-1.093a.933.933 0 0 1-.87-1.002l.16-1.05c.04-.187.172-.336.355-.41.27-.11.531-.246.775-.406a.715.715 0 0 0 .296-.45l.159-.956ZM12 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-1.657 6.84c-.09.542-.56.94-1.11.94H8.14c-.55 0-1.02-.398-1.11-.94l-.159-.956a.715.715 0 0 0-.295-.45 6.002 6.002 0 0 0-.776-.406.714.714 0 0 0-.356-.41l-.204-1.05c-.092-.47.32-1.002.87-1.002h1.093c.58 0 1.049.52.87 1.002l-.16 1.05c-.04.187-.172-.336-.355-.41-.27.11-.531-.246-.775-.406-.159.103-.266.267-.296.45l-.159.956ZM6 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm11.343-2.16c-.09.542-.56.94-1.11.94h-1.093c-.55 0-1.02-.398-1.11-.94l-.159-.956a.715.715 0 0 0-.295-.45 6.002 6.002 0 0 0-.776-.406.714.714 0 0 0-.356-.41l-.204-1.05c-.092-.47.32-1.002.87-1.002h1.093c.58 0 1.049.52.87 1.002l-.16 1.05c-.04.187-.172-.336-.355-.41-.27.11-.531-.246-.775-.406-.159.103-.266.267-.296.45l-.159.956ZM18 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM6.25 6.25a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM3 12a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 0 1.5h-1.5A.75.75 0 0 1 3 12ZM6.25 17.75a.75.75 0 0 1 0 1.06l-1.06 1.06a.75.75 0 0 1-1.06-1.06l1.06-1.06a.75.75 0 0 1 1.06 0ZM12 20.25a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5a.75.75 0 0 1 .75-.75ZM17.75 17.75a.75.75 0 0 1 1.06 0l1.06 1.06a.75.75 0 0 1-1.06 1.06l-1.06-1.06a.75.75 0 0 1 0-1.06ZM21 12a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0 1.5h1.5A.75.75 0 0 1 21 12ZM17.75 6.25a.75.75 0 0 1 0-1.06l1.06-1.06a.75.75 0 0 1 1.06 1.06l-1.06 1.06a.75.75 0 0 1-1.06 0Z" />
-                </svg>
-             </button>
+  const handleSettingsClose = () => {
+    setIsSettingsOpen(false);
+    setDataMap({}); // Clear stale data to avoid format mismatch after config change
+    loadModules();
+  };
 
-             {configs.map(cfg => (
-            <div key={cfg.id} className="bg-gray-800/60 rounded-xl overflow-hidden shadow-lg border border-gray-700/50 backdrop-blur-sm relative">
-                <UniversalWidget
-                    config={cfg}
-                    data={dataMap[cfg.id]}
-                />
-            </div>
-        ))}
-             {configs.length === 0 && (
-                 <div className="text-center text-gray-500 mt-10">
-                     Loading modules...
-                 </div>
-             )}
-
-             <SettingsModal 
-                isOpen={isSettingsOpen} 
-                onClose={handleSettingsClose}
-                modules={configs}
-             />
+  return (
+    <div
+      ref={glassRef}
+      className="drag-region"
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        padding: 12,
+        color: "white",
+        background: "transparent",
+      }}
+    >
+      <div
+        className="hud-glass"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Header bar */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "8px 16px",
+            borderBottom: "1px solid var(--glass-divider)",
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              color: "var(--text-secondary)",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}
+          >
+            {isSettingsOpen ? "Settings" : "GlanceHUD"}
+          </span>
+          <button
+            className="no-drag"
+            onClick={() => setIsSettingsOpen((prev) => !prev)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 4,
+              color: "var(--text-tertiary)",
+              display: "flex",
+              alignItems: "center",
+              transition: "color 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = "var(--text-tertiary)";
+            }}
+          >
+            {isSettingsOpen ? (
+              /* X icon to close settings */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              /* Gear icon to open settings */
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            )}
+          </button>
         </div>
-    );
+
+        {/* Content: either Settings or HUD widgets */}
+        {isSettingsOpen ? (
+          <SettingsModal
+            onClose={handleSettingsClose}
+            modules={modules}
+          />
+        ) : (
+          <>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {modules
+                .filter((m) => m.enabled)
+                .map((mod, idx) => (
+                  <motion.div
+                    key={mod.config.id}
+                    initial={fadeSlide.initial}
+                    animate={fadeSlide.animate}
+                    transition={{ duration: 0.3, delay: idx * 0.06 }}
+                  >
+                    {idx > 0 && <div className="hud-divider" />}
+                    <UniversalWidget config={mod.config} data={dataMap[mod.config.id]} />
+                  </motion.div>
+                ))}
+            </div>
+
+            {modules.length === 0 && (
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "var(--text-tertiary)",
+                  padding: 40,
+                  fontSize: 13,
+                }}
+              >
+                Loading modules...
+              </div>
+            )}
+
+            {modules.length > 0 && modules.filter((m) => m.enabled).length === 0 && (
+              <div
+                style={{
+                  textAlign: "center",
+                  color: "var(--text-tertiary)",
+                  padding: 32,
+                  fontSize: 12,
+                }}
+              >
+                All modules disabled. Open Settings to enable.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default App;

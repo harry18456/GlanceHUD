@@ -111,6 +111,7 @@ export const ConfigType = {
     ConfigNumber: "number",
     ConfigBool: "bool",
     ConfigSelect: "select",
+    ConfigCheckboxes: "checkboxes",
     ConfigButton: "button",
 };
 

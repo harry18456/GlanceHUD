@@ -20,19 +20,21 @@ type SystemService struct {
 }
 
 func NewSystemService() *SystemService {
+	mods := map[string]modules.Module{
+		"cpu":  modules.NewCPUModule(),
+		"mem":  modules.NewMemModule(),
+		"disk": modules.NewDiskModule(""),
+		"net":  modules.NewNetModule(),
+	}
+
 	configDir := "."
-	cs, _ := modules.NewConfigService(configDir)
+	cs, _ := modules.NewConfigService(configDir, mods)
 
 	return &SystemService{
 		configService: cs,
-		modules: map[string]modules.Module{
-			"cpu":  modules.NewCPUModule(),
-			"mem":  modules.NewMemModule(),
-			"disk": modules.NewDiskModule(""),
-			"net":  modules.NewNetModule(),
-		},
-		stopChans: make(map[string]chan struct{}),
-		cache:     make(map[string]*protocol.DataPayload),
+		modules:       mods,
+		stopChans:     make(map[string]chan struct{}),
+		cache:         make(map[string]*protocol.DataPayload),
 	}
 }
 
@@ -52,6 +54,13 @@ func (s *SystemService) SaveConfig(config modules.AppConfig) error {
 	}
 	s.StartMonitoring()
 	return nil
+}
+
+// ModuleInfo pairs the short config ID with the display RenderConfig.
+type ModuleInfo struct {
+	ModuleID string                `json:"moduleId"` // short ID for config ("cpu","disk",...)
+	Config   protocol.RenderConfig `json:"config"`   // display template
+	Enabled  bool                  `json:"enabled"`   // whether the module is active
 }
 
 type monitorTask struct {
@@ -83,7 +92,13 @@ func (s *SystemService) StartMonitoring() {
 			continue
 		}
 
-		mod.ApplyConfig(widgetCfg.Props)
+		// Merge global minimalMode into per-widget props
+		mergedProps := make(map[string]interface{})
+		for k, v := range widgetCfg.Props {
+			mergedProps[k] = v
+		}
+		mergedProps["minimal_mode"] = config.MinimalMode
+		mod.ApplyConfig(mergedProps)
 
 		stop := make(chan struct{})
 		s.stopChans[widgetCfg.ID] = stop
@@ -168,19 +183,44 @@ func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error
 	return results, nil
 }
 
-// GetModules returns the list of available modules and their render configs
-func (s *SystemService) GetModules() ([]protocol.RenderConfig, error) {
-	var configs []protocol.RenderConfig
-	for _, mod := range s.modules {
-		configs = append(configs, mod.GetRenderConfig())
+// GetModules returns the list of available modules with their short IDs, render configs, and enabled state.
+func (s *SystemService) GetModules() ([]ModuleInfo, error) {
+	config := s.configService.GetConfig()
+
+	// Build lookup: shortID → enabled
+	enabledMap := make(map[string]bool)
+	for _, w := range config.Widgets {
+		enabledMap[w.ID] = w.Enabled
 	}
-	return configs, nil
+
+	// Iterate in config.Widgets order for deterministic UI ordering
+	var infos []ModuleInfo
+	for _, w := range config.Widgets {
+		mod, exists := s.modules[w.ID]
+		if !exists {
+			continue
+		}
+		infos = append(infos, ModuleInfo{
+			ModuleID: w.ID,
+			Config:   mod.GetRenderConfig(),
+			Enabled:  w.Enabled,
+		})
+	}
+	return infos, nil
 }
 
-// GetModuleConfigSchema returns the config schema for a specific module
+// GetModuleConfigSchema returns the config schema for a specific module.
+// Accepts either the short module ID ("disk") or the full render ID ("glancehud.core.disk").
 func (s *SystemService) GetModuleConfigSchema(moduleID string) ([]protocol.ConfigSchema, error) {
+	// Try short ID first
 	if mod, ok := s.modules[moduleID]; ok {
 		return mod.GetConfigSchema(), nil
+	}
+	// Fallback: match by RenderConfig.ID
+	for _, mod := range s.modules {
+		if mod.GetRenderConfig().ID == moduleID {
+			return mod.GetConfigSchema(), nil
+		}
 	}
 	return nil, nil
 }

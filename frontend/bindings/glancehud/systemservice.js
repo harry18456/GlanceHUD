@@ -16,6 +16,10 @@ import * as modules$0 from "./internal/modules/models.js";
 // @ts-ignore: Unused imports
 import * as protocol$0 from "./internal/protocol/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
 /**
  * @returns {$CancellablePromise<modules$0.AppConfig>}
  */
@@ -36,7 +40,8 @@ export function GetCurrentData() {
 }
 
 /**
- * GetModuleConfigSchema returns the config schema for a specific module
+ * GetModuleConfigSchema returns the config schema for a specific module.
+ * Accepts either the short module ID ("disk") or the full render ID ("glancehud.core.disk").
  * @param {string} moduleID
  * @returns {$CancellablePromise<protocol$0.ConfigSchema[]>}
  */
@@ -47,8 +52,8 @@ export function GetModuleConfigSchema(moduleID) {
 }
 
 /**
- * GetModules returns the list of available modules and their render configs
- * @returns {$CancellablePromise<protocol$0.RenderConfig[]>}
+ * GetModules returns the list of available modules with their short IDs, render configs, and enabled state.
+ * @returns {$CancellablePromise<$models.ModuleInfo[]>}
  */
 export function GetModules() {
     return $Call.ByID(3895809045).then(/** @type {($result: any) => any} */(($result) => {
@@ -93,5 +98,5 @@ const $$createType1 = protocol$0.DataPayload.createFrom;
 const $$createType2 = $Create.Map($Create.Any, $$createType1);
 const $$createType3 = protocol$0.ConfigSchema.createFrom;
 const $$createType4 = $Create.Array($$createType3);
-const $$createType5 = protocol$0.RenderConfig.createFrom;
+const $$createType5 = $models.ModuleInfo.createFrom;
 const $$createType6 = $Create.Array($$createType5);

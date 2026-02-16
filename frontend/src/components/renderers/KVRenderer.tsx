@@ -1,30 +1,96 @@
-import React from 'react';
+import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { RenderConfig, DataPayload, KeyValueItem } from "../../types";
+import { IconFromName } from "../../lib/iconRegistry";
 
 interface Props {
-    config: any;
-    data?: any;
+  config: RenderConfig;
+  data?: DataPayload;
 }
 
 export const KVRenderer: React.FC<Props> = ({ config, data }) => {
-    const items = (data?.items as any[]) || [];
-    const layout = config.props?.layout === 'row' ? 'flex flex-row justify-between' : 'flex flex-col gap-2';
+  const items = Array.isArray(data?.items) ? (data.items as KeyValueItem[]) : [];
+  const isRow = config.props?.layout === "row";
 
-    return (
-        <div className={`p-4 w-full h-full ${layout}`}>
-            {items.map((item, idx) => (
-                <div key={idx} className="flex flex-col items-center">
-                    <span className="text-xs text-gray-400 uppercase">{item.key}</span>
-                     <div className="flex items-center gap-1">
-                        {/* Icon placeholder if we have icon lib later */}
-                        {item.icon && <span className="text-xs"></span>} 
-                        <span className="text-lg font-bold">{item.value}</span>
-                     </div>
-                </div>
-            ))}
-            {items.length === 0 && (
-                <div className="text-gray-500 text-sm">No Data</div>
-            )}
-        </div>
-    );
+  return (
+    <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+      {config.title && (
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: "var(--text-tertiary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          {config.title}
+        </span>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isRow ? "row" : "column",
+          gap: isRow ? 20 : 8,
+          flexWrap: isRow ? "wrap" : undefined,
+        }}
+      >
+        <AnimatePresence mode="popLayout">
+          {items.map((item) => (
+            <motion.div
+              key={item.key}
+              layout
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flex: isRow ? "1 1 0" : undefined,
+                minWidth: isRow ? 0 : undefined,
+              }}
+            >
+              {/* Icon */}
+              {item.icon && (
+                <span style={{ color: "var(--color-info)", flexShrink: 0 }}>
+                  <IconFromName name={item.icon} size={14} />
+                </span>
+              )}
+
+              {/* Key label */}
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "var(--text-secondary)",
+                  flexShrink: 0,
+                }}
+              >
+                {item.key}
+              </span>
+
+              {/* Value */}
+              <span
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--text-primary)",
+                  marginLeft: "auto",
+                }}
+              >
+                {item.value}
+              </span>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {items.length === 0 && (
+        <span style={{ fontSize: 12, color: "var(--text-tertiary)" }}>No Data</span>
+      )}
+    </div>
+  );
 };

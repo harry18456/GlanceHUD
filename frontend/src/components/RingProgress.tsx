@@ -13,7 +13,8 @@ export function RingProgress({
 }) {
   const r = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * r;
-  const offset = circ - (value / 100) * circ;
+  const clamped = Math.min(100, Math.max(0, value));
+  const offset = circ - (clamped / 100) * circ;
 
   return (
     <svg width={size} height={size} style={{ overflow: "visible" }} className="drop-shadow-md">
@@ -40,7 +41,7 @@ export function RingProgress({
         style={{
           transform: "rotate(-90deg)",
           transformOrigin: "center",
-          filter: `drop-shadow(0 0 4px ${colour})`,
+          filter: `drop-shadow(0 0 4px color-mix(in srgb, ${colour} 25%, transparent))`,
         }}
       />
     </svg>

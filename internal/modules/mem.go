@@ -33,14 +33,7 @@ func (m *MemModule) ApplyConfig(props map[string]interface{}) {
 }
 
 func (m *MemModule) GetConfigSchema() []protocol.ConfigSchema {
-	return []protocol.ConfigSchema{
-		{
-			Name:    "minimal_mode",
-			Label:   "極簡模式 (純文字)",
-			Type:    protocol.ConfigBool,
-			Default: false,
-		},
-	}
+	return []protocol.ConfigSchema{}
 }
 
 func (m *MemModule) GetRenderConfig() protocol.RenderConfig {

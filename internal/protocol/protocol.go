@@ -66,11 +66,12 @@ type KeyValueItem struct {
 type ConfigType string
 
 const (
-	ConfigText   ConfigType = "text"
-	ConfigNumber ConfigType = "number"
-	ConfigBool   ConfigType = "bool"
-	ConfigSelect ConfigType = "select"
-	ConfigButton ConfigType = "button"
+	ConfigText       ConfigType = "text"
+	ConfigNumber     ConfigType = "number"
+	ConfigBool       ConfigType = "bool"
+	ConfigSelect     ConfigType = "select"
+	ConfigCheckboxes ConfigType = "checkboxes"
+	ConfigButton     ConfigType = "button"
 )
 
 // ConfigSchema 定義單個設定欄位
