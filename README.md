@@ -3,24 +3,27 @@
 ![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go)
 ![Wails Version](<https://img.shields.io/badge/Wails-v3_(Alpha)-red?style=flat-square>)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
-![Platform](https://img.shields.io/badge/Platform-Windows-blue?style=flat-square&logo=windows)
+![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue?style=flat-square)
 
-**GlanceHUD** 是一個現代化、模組化的 Windows 桌面懸浮監控儀表板。
+**GlanceHUD** 是一個現代化、模組化的 **跨平台 (Cross-Platform)** 桌面懸浮監控儀表板。
 專為需要隨時掌握系統狀態（CPU、記憶體、硬碟、網路），但追求極簡、無干擾體驗的使用者設計。
 
-![Screenshot](screenshot.png)
+> **注意**: 目前主要開發與測試環境為 **Windows**，其他平台 (macOS, Linux) 理論上支援但尚未完整驗證。
+
+![Screenshot](assets/images/screenshot.png)
 
 ---
 
 ## 🚀 專案願景 (Project Vision)
 
-我們的最終目標是打造一個 **「通用監控平台 (Universal Monitoring Platform)」**，而不僅僅是一個寫死的系統監控工具。
+我們的最終目標是打造一個 **「通用監控平台 (Universal Monitoring Platform)」**。
+GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」**，讓任何程式語言 (Python, Node.js, Rust) 都能透過簡單的協議，將數據推送到你的桌面上顯示。
 
 ### 核心理念
 
-1.  **Data-Driven UI**: 前端只是「畫布」，後端決定「畫什麼」。新增功能完全由後端驅動，前端無需修改程式碼。
-2.  **真正的 HUD 體驗**: 支援透明度控制、滑鼠穿透 (Click-through)、以及自由拖放佈局，讓資訊懸浮於視窗之上卻不阻礙工作。
-3.  **開放生態系**: 透過標準化的協議 (Protocol) 與 HTTP API，允許第三方應用接入數據或開發插件。
+1.  **Data-Driven UI**: 前端只是「畫布」，後端決定「畫什麼」。
+2.  **真正的 HUD 體驗**: 支援透明度控制、滑鼠穿透、自由佈局。
+3.  **開放生態系 (Sidecar 模式)**: 支援 **HTTP Push API**。外部腳本 (如 Python 訓練監控) 只需發送 JSON 到 `localhost`，無需重新編譯主程式即可顯示。
 
 ---
 
@@ -28,32 +31,30 @@
 
 ### Phase 1: 基礎建設 (Foundation) ✅ 已完成
 
-- [x] **Wails v3 + React 架構**: 建立高效能的跨平台基礎。
-- [x] **模組化後端**: 實作 CPU, RAM, Disk, Net 獨立模組。
-- [x] **推播式架構 (Push-Based)**: 每個模組獨立運作，主動推播數據，互不影響。
-- [x] **跨平台支援**: 自動偵測 OS 路徑與各類系統呼叫。
+- [x] **Wails v3 + React 架構**
+- [x] **推播式架構 (Push-Based)**
+- [x] **跨平台支援 (Cross-Platform)**
 
 ### Phase 2: 標準化與協議 (Standardization) 🚧 進行中
 
 - [ ] **原子化顯示組件 (Atomic Display Protocol)**:
   - 定義通用且原子化的 UI 元件 (如 `CircularGauge`, `Sparkline`)。
-  - **事件驅動更新 (Event-Driven Updates)**:
-    - **Manifest (Init)**: 定義 UI 結構 `[{ id: "cpu", type: "CircularGauge", props: {...} }]`。
-    - **Data Patch (Update)**: 僅推播變動數據 `{ updates: { "cpu": { value: 45.2 } } }`。
+  - **事件驅動更新**: 使用 Manifest (結構) 與 Data Patch (數據) 分離策略。
 - [ ] **設定協議 (Config Protocol)**: 模組回傳 Schema，前端自動產生設定表單。
-- [ ] **效能優化**: 後端實作 **Diff Check**，僅在數據變化超過閾值時推播更新。
+- [ ] **效能優化**: 後端實作 **Diff Check**。
 
 ### Phase 3: 進階 HUD 體驗 (Advanced HUD) 📅 規劃中
 
-- [ ] **System Tray 整合**: 支援縮小到系統列、右鍵選單控制。
-- [ ] **視窗控制與模式切換**:
-  - **鎖定模式**: 透明背景、滑鼠穿透 (Click-through)。
-  - **編輯模式**: 透過 **全域快捷鍵** 或 Tray 切換，可拖放模組位置 (Layout Editor)。
+- [ ] **System Tray 整合**
+- [ ] **視窗控制**: 鎖定模式 (穿透) vs 編輯模式 (拖放佈局)。
 
 ### Phase 4: 生態系與擴充 (Ecosystem) 📅 規劃中
 
-- [ ] **HTTP API Endpoint**: 開放 JSON API，讓 GlanceHUD 成為 **開發者的 Desktop Dashboard** (例如：用 Python 腳本推送訓練進度到 HUD 顯示)。
-- [ ] **插件系統**: 允許載入外部編譯的 Go Plugin。
+- [ ] **雙向 HTTP API (Bi-directional API)**:
+  - **資料注入 (Push)**: 開放 `POST /api/widget`，允許外部程式 (Python, Bash, CI/CD) 推送自定義數據到 HUD 顯示 (例如：ML Training Loss)。
+  - **狀態查詢 (Pull)**: 開放 `GET /api/stats`，允許外部裝置 (如 Home Assistant, Stream Deck) 讀取當前系統監控數據。
+- [ ] **插件系統 (Sidecar Plugins)**:
+  - 透過設定檔定義並自動啟動外部腳本 (Sidecar)，透過標準輸入/輸出 (stdio) 或 HTTP 與主程式溝通。
 
 ---
 

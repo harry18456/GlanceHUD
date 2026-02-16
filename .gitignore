@@ -36,3 +36,4 @@ Thumbs.db
 # but if it contains local user prefs we might ignore it. 
 # For now, let's keep it tracked as "default config".
 vendor/
+config.json
