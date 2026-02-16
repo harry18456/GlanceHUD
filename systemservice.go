@@ -85,7 +85,10 @@ func (s *SystemService) StartMonitoring() {
 		go func(m modules.Module, stopChan chan struct{}) {
 			// Initial update
 			if data, err := m.Update(); err == nil {
-				s.app.Event.Emit("stats:update", data)
+				s.app.Event.Emit("stats:update", protocol.UpdateEvent{
+					ID:   m.ID(),
+					Data: data,
+				})
 			}
 
 			ticker := time.NewTicker(m.Interval())
@@ -100,7 +103,10 @@ func (s *SystemService) StartMonitoring() {
 					if err != nil {
 						continue
 					}
-					s.app.Event.Emit("stats:update", data)
+					s.app.Event.Emit("stats:update", protocol.UpdateEvent{
+						ID:   m.ID(),
+						Data: data,
+					})
 				}
 			}
 		}(mod, stop)

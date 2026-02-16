@@ -3,6 +3,8 @@ declare module "*/bindings/glancehud" {
         GetSystemStats(): Promise<any[]>;
         GetConfig(): Promise<any>;
         SaveConfig(config: any): Promise<void>;
+        GetModules(): Promise<import("./types").RenderConfig[]>;
+        GetModuleConfigSchema(moduleID: string): Promise<import("./types").ConfigSchema[]>;
     };
 }
 

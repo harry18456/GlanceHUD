@@ -37,6 +37,12 @@ type DataPayload struct {
 	Props map[string]any `json:"props,omitempty"`
 }
 
+// UpdateEvent 用於 WebSocket 推送 (包含 ID)
+type UpdateEvent struct {
+	ID   string       `json:"id"`
+	Data *DataPayload `json:"data"`
+}
+
 // --- 組件專用數據結構 (Helper Structs) ---
 
 // BarListItem 用於 BarList
