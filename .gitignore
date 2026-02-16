@@ -37,3 +37,7 @@ Thumbs.db
 # For now, let's keep it tracked as "default config".
 vendor/
 config.json
+
+# Claude
+.claude
+CLAUDE.md

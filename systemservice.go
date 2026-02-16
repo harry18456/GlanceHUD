@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"glancehud/internal/modules"
 	"glancehud/internal/protocol"
 	"reflect"
@@ -14,9 +13,10 @@ import (
 type SystemService struct {
 	app           *application.App
 	configService *modules.ConfigService
-	modules       map[string]modules.Module
+	modules       map[string]modules.Module // immutable after init
 	stopChans     map[string]chan struct{}
-	mu            sync.Mutex
+	cache         map[string]*protocol.DataPayload
+	mu            sync.RWMutex
 }
 
 func NewSystemService() *SystemService {
@@ -32,6 +32,7 @@ func NewSystemService() *SystemService {
 			"net":  modules.NewNetModule(),
 		},
 		stopChans: make(map[string]chan struct{}),
+		cache:     make(map[string]*protocol.DataPayload),
 	}
 }
 
@@ -49,24 +50,29 @@ func (s *SystemService) SaveConfig(config modules.AppConfig) error {
 	if err != nil {
 		return err
 	}
-	// Restart monitoring to apply new config
 	s.StartMonitoring()
 	return nil
 }
 
-func (s *SystemService) StartMonitoring() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+type monitorTask struct {
+	mod      modules.Module
+	renderID string
+	stop     chan struct{}
+}
 
-	// Stop all existing monitors first
-	fmt.Println("StartMonitoring called")
+func (s *SystemService) StartMonitoring() {
+	// Phase 1: synchronous state mutation under lock
+	s.mu.Lock()
+
 	for id, ch := range s.stopChans {
 		close(ch)
 		delete(s.stopChans, id)
 	}
 
+	s.cache = make(map[string]*protocol.DataPayload)
 	config := s.configService.GetConfig()
 
+	var tasks []monitorTask
 	for _, widgetCfg := range config.Widgets {
 		if !widgetCfg.Enabled {
 			continue
@@ -77,86 +83,85 @@ func (s *SystemService) StartMonitoring() {
 			continue
 		}
 
-		// Apply config (props)
 		mod.ApplyConfig(widgetCfg.Props)
 
-		// Create stop channel
 		stop := make(chan struct{})
 		s.stopChans[widgetCfg.ID] = stop
 
-		// Launch goroutine
+		tasks = append(tasks, monitorTask{
+			mod:      mod,
+			renderID: mod.GetRenderConfig().ID,
+			stop:     stop,
+		})
+	}
 
-		// Cache for Diff Check
-		cache := make(map[string]*protocol.DataPayload)
+	s.mu.Unlock()
 
-		for _, mod := range s.modules {
-			// Start monitoring routine
-			go func(m modules.Module, stopChan chan struct{}) {
-				// Initial update
-				if data, err := m.Update(); err == nil {
-					fmt.Printf("Initial update for %s: %+v\n", m.ID(), data)
-					s.app.Event.Emit("stats:update", protocol.UpdateEvent{
-						ID:   m.ID(),
-						Data: data,
-					})
-					cache[m.ID()] = data
-				}
+	// Phase 2: launch goroutines after lock is released
+	for _, t := range tasks {
+		go s.runMonitor(t.mod, t.renderID, t.stop)
+	}
+}
 
-				ticker := time.NewTicker(m.Interval())
-				defer ticker.Stop()
+func (s *SystemService) runMonitor(m modules.Module, eventID string, stopChan chan struct{}) {
+	if data, err := m.Update(); err == nil {
+		s.app.Event.Emit("stats:update", protocol.UpdateEvent{
+			ID:   eventID,
+			Data: data,
+		})
+		s.mu.Lock()
+		s.cache[eventID] = data
+		s.mu.Unlock()
+	}
 
-				for {
-					select {
-					case <-stopChan:
-						return
-					case <-ticker.C:
-						data, err := m.Update()
-						if err != nil {
-							continue
-						}
+	ticker := time.NewTicker(m.Interval())
+	defer ticker.Stop()
 
-						// Diff Check
-						// TODO: Use better comparison if performance is an issue,
-						// but DeepEqual is fine for small structs.
-						// Or we can simple check Values if structure is stable.
-						if lastData, ok := cache[m.ID()]; ok {
-							if reflect.DeepEqual(lastData, data) {
-								continue
-							}
-						}
+	for {
+		select {
+		case <-stopChan:
+			return
+		case <-ticker.C:
+			data, err := m.Update()
+			if err != nil {
+				continue
+			}
 
-						s.app.Event.Emit("stats:update", protocol.UpdateEvent{
-							ID:   m.ID(),
-							Data: data,
-						})
-						cache[m.ID()] = data
-					}
-				}
-			}(mod, stop)
+			// Diff check: skip emit if data unchanged
+			s.mu.RLock()
+			lastData, ok := s.cache[eventID]
+			unchanged := ok && reflect.DeepEqual(lastData, data)
+			s.mu.RUnlock()
+
+			if unchanged {
+				continue
+			}
+
+			s.mu.Lock()
+			s.cache[eventID] = data
+			s.mu.Unlock()
+
+			s.app.Event.Emit("stats:update", protocol.UpdateEvent{
+				ID:   eventID,
+				Data: data,
+			})
 		}
 	}
 }
 
 // Keep GetSystemStats for backward compatibility or immediate fetch if needed
 func (s *SystemService) GetSystemStats() (any, error) {
-	// Not used in Push architecture
 	return nil, nil
 }
 
 // GetCurrentData returns the last cached data for all active modules
 func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 
-	// We can't access local cache var from StartMonitoring.
-	// So we should promote cache to struct field.
-	// OR just trigger an immediate update for all.
-	// Triggering update is safer.
-
-	results := make(map[string]protocol.DataPayload)
-	for id, mod := range s.modules {
-		// Just call Update. It's cheap enough.
-		if data, err := mod.Update(); err == nil && data != nil {
+	results := make(map[string]protocol.DataPayload, len(s.cache))
+	for id, data := range s.cache {
+		if data != nil {
 			results[id] = *data
 		}
 	}
@@ -166,10 +171,6 @@ func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error
 // GetModules returns the list of available modules and their render configs
 func (s *SystemService) GetModules() ([]protocol.RenderConfig, error) {
 	var configs []protocol.RenderConfig
-	// Iterate in specific order if needed, but map iteration is random.
-	// We might want to use the config order?
-	// For now, return all available modules' render configs.
-	// Frontend can sort them based on use or config.
 	for _, mod := range s.modules {
 		configs = append(configs, mod.GetRenderConfig())
 	}

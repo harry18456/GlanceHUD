@@ -21,7 +21,7 @@ export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
             return <BarListRenderer config={config} data={data} />;
         case "key-value":
             return <KVRenderer config={config} data={data} />;
-        case "text": // Or minimal mode
+        case "text":
             return <TextRenderer config={config} data={data} />;
         default:
             return (
