@@ -3,6 +3,7 @@ package main
 import (
 	"glancehud/internal/modules"
 	"glancehud/internal/protocol"
+	"reflect"
 	"sync"
 	"time"
 
@@ -82,34 +83,54 @@ func (s *SystemService) StartMonitoring() {
 		s.stopChans[widgetCfg.ID] = stop
 
 		// Launch goroutine
-		go func(m modules.Module, stopChan chan struct{}) {
-			// Initial update
-			if data, err := m.Update(); err == nil {
-				s.app.Event.Emit("stats:update", protocol.UpdateEvent{
-					ID:   m.ID(),
-					Data: data,
-				})
-			}
 
-			ticker := time.NewTicker(m.Interval())
-			defer ticker.Stop()
+		// Cache for Diff Check
+		cache := make(map[string]*protocol.DataPayload)
 
-			for {
-				select {
-				case <-stopChan:
-					return
-				case <-ticker.C:
-					data, err := m.Update()
-					if err != nil {
-						continue
-					}
+		for _, mod := range s.modules {
+			// Start monitoring routine
+			go func(m modules.Module, stopChan chan struct{}) {
+				// Initial update
+				if data, err := m.Update(); err == nil {
 					s.app.Event.Emit("stats:update", protocol.UpdateEvent{
 						ID:   m.ID(),
 						Data: data,
 					})
+					cache[m.ID()] = data
 				}
-			}
-		}(mod, stop)
+
+				ticker := time.NewTicker(m.Interval())
+				defer ticker.Stop()
+
+				for {
+					select {
+					case <-stopChan:
+						return
+					case <-ticker.C:
+						data, err := m.Update()
+						if err != nil {
+							continue
+						}
+
+						// Diff Check
+						// TODO: Use better comparison if performance is an issue,
+						// but DeepEqual is fine for small structs.
+						// Or we can simple check Values if structure is stable.
+						if lastData, ok := cache[m.ID()]; ok {
+							if reflect.DeepEqual(lastData, data) {
+								continue
+							}
+						}
+
+						s.app.Event.Emit("stats:update", protocol.UpdateEvent{
+							ID:   m.ID(),
+							Data: data,
+						})
+						cache[m.ID()] = data
+					}
+				}
+			}(mod, stop)
+		}
 	}
 }
 
