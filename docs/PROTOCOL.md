@@ -109,6 +109,22 @@ Data Payload 中可包含 `props` 欄位，用於覆蓋靜態設定 (例如：�
   }
   ```
 
+#### F. `text` (純文字)
+
+- **用途**: Minimalist Mode, Clock, IP Info.
+- **Props**:
+  - `size`: "sm" | "md" | "lg" (預設 "md")
+  - `align`: "left" | "center" | "right" (預設 "left")
+  - `color`: string (選填)
+- **Data Payload (Update)**:
+  ```json
+  {
+    "value": "15%", // 主要數值
+    "label": "CPU", // (選填) 標題
+    "sublabel": "2.4 GHz" // (選填) 副標題
+  }
+  ```
+
 ---
 
 ## 2. 設定協議 (Config Protocol)

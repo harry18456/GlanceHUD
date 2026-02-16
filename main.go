@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"glancehud/internal/service"
 	"log"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -19,6 +20,7 @@ func main() {
 		Description: "Lightweight system-vitals floating HUD",
 		Services: []application.Service{
 			application.NewService(systemService),
+			application.NewService(service.NewAPIService()),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
