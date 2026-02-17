@@ -1,6 +1,6 @@
-# GlanceHUD V2 Protocol Specification (Draft)
+# GlanceHUD V2 Protocol Specification
 
-此文件定義 GlanceHUD V2 的前後端通訊協議，包含顯示 (Display) 與設定 (Config) 兩部分。
+此文件定義 GlanceHUD V2 的前後端通訊協議，包含顯示 (Display)、設定 (Config) 與擴充 (Sidecar) 三部分。
 核心原則：**Backend-Driven UI**。前端僅負責渲染標準組件，不含業務邏輯。
 
 ---
@@ -11,119 +11,74 @@
 
 每個模組 (Module) 透過 `GetRenderConfig()` 回傳其顯示樣板設定。
 
-```json
-{
-  "id": "glancehud.core.cpu", // 模組唯一 ID (namespace.module_name)
-  "type": "gauge", // 組件類型
-  "title": "CPU Use",
-  "props": {
-    // 靜態設定 (Default)
-    "unit": "%",
-    "color": "#00ff00"
-  }
+```go
+type RenderConfig struct {
+	ID    string         `json:"id"`    // e.g., "glancehud.core.cpu"
+	Type  ComponentType  `json:"type"`  // e.g., "gauge"
+	Title string         `json:"title"` // e.g., "CPU Use"
+	Props map[string]any `json:"props"` // 靜態設定 (min, max, unit...)
 }
 ```
 
 **Dynamic Prop Override (動態屬性覆蓋)**:
-Data Payload 中可包含 `props` 欄位，用於覆蓋靜態設定 (例如：數值過高時變色)。
+`DataPayload` 中可包含 `props` 欄位，用於覆蓋靜態設定 (例如：數值過高時變色)。
 
-```json
-{
-  "value": 92,
-  "label": "92%",
-  "props": {
-    "color": "#ff0000" // Alert color
-  }
+```go
+type DataPayload struct {
+	// 通用數值
+	Value        any    `json:"value,omitempty"`        // 支援 number 或 string
+	Label        string `json:"label,omitempty"`        // Gauge 中心文字
+	DisplayValue string `json:"displayValue,omitempty"` // Sparkline 旁顯示文字
+
+	// 列表類數據 (BarList, KeyValue)
+	Items any `json:"items,omitempty"` // []BarItem 或 []KeyValueItem
+
+	// 動態屬性覆蓋 (重點功能)
+	Props map[string]any `json:"props,omitempty"`
 }
 ```
 
 ### 1.2 組件類型定義 (Component Types)
 
+定義於 `internal/protocol/protocol.go`:
+
 #### A. `gauge` (環形進度條)
 
-- **用途**: CPU Usage, RAM Usage, Battery Level.
-- **Props**:
-  - `min` (number): 最小值 (預設 0)
-  - `max` (number): 最大值 (預設 100)
-  - `unit` (string): 單位 (e.g. "%", "°C")
-  - `color` (string): 顏色代碼 (e.g. "text-green-500")
-- **Data Payload (Update)**:
-  ```json
-  {
-    "value": 45.2, // 當前數值
-    "label": "45.2%" // (選填) 覆蓋中心顯示文字
-  }
-  ```
+- **Props**: `min`, `max`, `unit`, `color`
+- **Data**: `value` (number), `label` (string)
 
 #### B. `bar-list` (長條圖列表)
 
-- **用途**: Disk Usage (C:, D:), Top Processes.
-- **Props**:
-  - `headers` (string[]): ["Disk", "Used", "Free"] (選填)
-- **Data Payload (Update)**:
-  ```json
-  {
-    "items": [
-      { "label": "C:", "percent": 45, "value": "100GB / 500GB" },
-      { "label": "D:", "percent": 12, "value": "1.2TB / 2TB" }
-    ]
+- **Props**: `headers` (string[])
+- **Data**: `items` ([]BarListItem)
+  ```go
+  type BarListItem struct {
+  	Label   string  `json:"label"`
+  	Percent float64 `json:"percent"`
+  	Value   string  `json:"value"`
   }
   ```
 
 #### C. `key-value` (鍵值對列表)
 
-- **用途**: Network Stats (Up/Down), System Info.
-- **Props**:
-  - `layout`: "row" | "column" (預設 column)
-- **Data Payload (Update)**:
-  ```json
-  {
-    "items": [
-      { "key": "Upload", "value": "1.2 MB/s", "icon": "arrow-up" },
-      { "key": "Download", "value": "4.5 MB/s", "icon": "arrow-down" }
-    ]
+- **Props**: `layout` ("row" | "column")
+- **Data**: `items` ([]KeyValueItem)
+  ```go
+  type KeyValueItem struct {
+  	Key   string `json:"key"`
+  	Value string `json:"value"`
+  	Icon  string `json:"icon,omitempty"`
   }
   ```
 
 #### D. `group` (容器)
 
-- **用途**: 組合多個子組件。
-- **Props**:
-  - `layout`: "horizontal" | "vertical" (預設 vertical)
-  - `gap`: number (間距，預設 2)
-  - `align`: "start" | "center" | "end" (對齊方式)
-  - `children`: Array of Components (遞迴結構)
+- **Props**: `layout` ("horizontal" | "vertical"), `gap`, `align`, `children`
 
 #### E. `sparkline` (迷你趨勢圖)
 
-- **用途**: Network History, CPU Load History.
-- **Props**:
-  - `lineColor`: string (預設 #fff)
-  - `fillColor`: string (選填, 區域填充色)
-  - `maxDataPoints`: number (前端保留幾個點，例如 60)
-- **Data Payload (Update)**:
-  ```json
-  {
-    "value": 4500, // 新增的單點數值 (前端自動 push 到陣列並 shift 舊資料)
-    "displayValue": "4.5 KB" // Tooltip 或旁邊顯示的文字
-  }
-  ```
-
-#### F. `text` (純文字)
-
-- **用途**: Minimalist Mode, Clock, IP Info.
-- **Props**:
-  - `size`: "sm" | "md" | "lg" (預設 "md")
-  - `align`: "left" | "center" | "right" (預設 "left")
-  - `color`: string (選填)
-- **Data Payload (Update)**:
-  ```json
-  {
-    "value": "15%", // 主要數值
-    "label": "CPU", // (選填) 標題
-    "sublabel": "2.4 GHz" // (選填) 副標題
-  }
-  ```
+- **Props**: `lineColor`, `fillColor`, `maxDataPoints`
+- **Data**: `value` (number, push 1 point), `displayValue` (string)
 
 ---
 
@@ -131,96 +86,125 @@ Data Payload 中可包含 `props` 欄位，用於覆蓋靜態設定 (例如：�
 
 模組透過 `GetConfigSchema()` 回傳設定表單結構。
 
-#### A. 基本欄位 (Text, Number, Bool)
-
-```json
-{
-  "name": "interval",
-  "label": "更新頻率 (ms)",
-  "type": "number",
-  "default": 1000
+```go
+type ConfigSchema struct {
+	Name    string         `json:"name,omitempty"`
+	Label   string         `json:"label"`
+	Type    ConfigType     `json:"type"`
+	Default any            `json:"default,omitempty"`
+	Options []SelectOption `json:"options,omitempty"` // 僅用於 select
+	Action  string         `json:"action,omitempty"`  // 僅用於 button
 }
 ```
 
-#### B. 下拉選單 (Select)
+### Config Types
 
-```json
-{
-  "name": "net_interface",
-  "label": "網路介面",
-  "type": "select",
-  "options": [
-    { "label": "Wi-Fi", "value": "wlan0" },
-    { "label": "Ethernet", "value": "eth0" }
-  ],
-  "default": "eth0"
-}
-```
-
-#### C. 多選核取方塊 (Checkboxes)
-
-```json
-{
-  "name": "paths",
-  "label": "顯示磁碟",
-  "type": "checkboxes",
-  "options": [
-    { "label": "C:\\", "value": "C:\\" },
-    { "label": "D:\\", "value": "D:\\" }
-  ],
-  "default": ["C:\\", "D:\\"]
-}
-```
-
-`default` 為字串陣列，表示預設勾選的項目。前端以 checkbox group 呈現，值存為 `string[]`。
-
-#### D. 動作按鈕 (Action)
-
-```json
-{
-  "type": "button",
-  "label": "重描磁碟",
-  "action": "rescan_disks" // 觸發後端對應的方法
-}
-```
-
-前端 `SettingsModal` 將根據此陣列自動產生對應的 Input/Checkbox/Select 元件。
+- `text`: 文字輸入
+- `number`: 數字輸入
+- `bool`: 開關
+- `select`: 下拉選單 (需提供 `options`)
+- `checkboxes`: 多選 (需提供 `options`)
+- `button`: 觸發動作 (需提供 `action` method name)
 
 ---
 
-## 3. Sidecar 擴充協議 (Phase 4 預覽)
+## 3. Sidecar 擴充協議 (Sidecar Protocol)
 
-### 3.1 命名空間 (Namespacing)
+這是 Phase 4 的核心功能，允許外部程式 (Python, Node.js, Shell) 透過 HTTP 將數據推送到 GlanceHUD。
 
-強制 ID 格式為 `namespace.module_name`，避免衝突。
+### 3.1 Lazy Registration (懶載入/隨附註冊)
 
-- `glancehud.core.cpu`
-- `python.script.gpu`
-- `community.plugin.weather`
+GlanceHUD 採用 **Lazy Registration** 模式。外部程式不需要先呼叫獨立的註冊 API，而是直接將 `Template` (設定) 包含在第一次的 `Data` 推送中。
 
-### 3.2 心跳與斷線 (Heartbeat)
+- **URL**: `POST http://localhost:9090/api/widget`
+- **Method**: `POST`
+- **Content-Type**: `application/json`
 
-- **機制**: Sidecar 需定期發送數據 (建議每 5 秒至少一次)。
-- **Offline**: 若後端超過 10 秒未收到數據，自動將該 Module 標記為 "Offline" (UI 變灰或顯示斷線圖示)。
-
-### 3.3 數據注入 (Push)
-
-外部腳本 (Python/Node) 可透過 HTTP POST `http://localhost:9090/api/widget` 推送數據。
-
-**POST Body**:
+**Request Body (`SidecarRequest`)**:
 
 ```json
 {
-  "module_id": "gpu-monitor",
+  "module_id": "my-python-script.gpu",
   "template": {
-    // (選填) 第一次註冊時發送
     "type": "gauge",
     "title": "NVIDIA GPU",
-    "props": { "unit": "%" }
+    "props": { "unit": "%", "max": 100 }
   },
   "data": {
-    // 更新數據
-    "value": 78
+    "value": 78,
+    "label": "78°C"
   }
 }
+```
+
+- **`module_id`** (必填): 唯一識別碼，建議使用 `namespace.name` 格式。
+- **`template`** (選填):
+  - 若 HUD 尚未有此 ID 的記錄，則使用此 Template 建立新 Widget。
+  - 若 HUD 已有此 ID，則忽略 Template (或可選擇更新)。
+  - **建議**: 外部腳本可在每次啟動時的**第一次**推送帶上 Template，後續推送可省略。
+- **`data`** (必填): 要更新的數據 payload。
+
+---
+
+### 3.2 離線機制 (Offline Mechanism)
+
+為了避免外部腳本掛掉後 HUD 仍顯示舊數據，Sidecar 協議包含 **Offline** 偵測機制。
+
+1.  **TTL (Time To Live)**:
+    - 每個 Sidecar Widget 預設有 **10 秒** 的 TTL。
+2.  **Heartbeat (心跳)**:
+    - Sidecar 必須至少每 **5 秒** 推送一次數據 (即使數據未變更，也需發送 Payload 以維持在線狀態)。
+3.  **Offline 狀態**:
+    - 若 HUD 在 **10 秒** 內未收到該 ID 的任何推送，會自動將該 Widget 標記為 **Offline**。
+    - **UI 表現**:
+      - Widget 變灰 (Grayscale)。
+      - 顯示斷線圖示或 "Offline" 標籤。
+      - 數值保留最後一次的已知值，或顯示為 "--"。
+
+4.  **恢復 (Recovery)**:
+    - 當 Sidecar 重新發送請求時，Widget 立即恢復為 **Online** 狀態。
+
+---
+
+### 3.3 範例 (Python Sidecar)
+
+```python
+import requests
+import time
+import psutil
+
+URL = "http://localhost:9090/api/widget"
+ID = "python.cpu.monitor"
+
+# 第一次推送: 包含 Template
+first_payload = {
+    "module_id": ID,
+    "template": {
+        "type": "gauge",
+        "title": "Python CPU",
+        "props": {"unit": "%", "color": "text-blue-500"}
+    },
+    "data": { "value": 0 }
+}
+requests.post(URL, json=first_payload)
+
+while True:
+    cpu = psutil.cpu_percent()
+
+    # 後續推送: 只帶 Data
+    payload = {
+        "module_id": ID,
+        "data": {
+            "value": cpu,
+            "label": f"{cpu}%"
+        }
+    }
+
+    try:
+        requests.post(URL, json=payload)
+        print(f"Pushed: {cpu}%")
+    except:
+        print("HUD not running?")
+
+    time.sleep(2) # 每 2 秒推送一次 (滿足 < 10s TTL)
 ```

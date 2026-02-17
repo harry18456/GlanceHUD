@@ -4,6 +4,9 @@ import {
   HardDrive,
   MemoryStick,
   Cpu,
+  Sun,
+  CloudRain,
+  Thermometer,
   type LucideProps,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -14,6 +17,12 @@ const registry: Record<string, ComponentType<LucideProps>> = {
   HardDrive,
   MemoryStick,
   Cpu,
+  Sun,
+  sun: Sun,
+  CloudRain,
+  "cloud-rain": CloudRain,
+  Thermometer,
+  thermometer: Thermometer,
 };
 
 export function IconFromName({

@@ -6,7 +6,7 @@
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "auto",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "author": {
     "name": "harry18456",
     "email": "harry18456@gmail.com"

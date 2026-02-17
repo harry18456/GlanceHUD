@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { SystemService } from "../bindings/glancehud";
+import { SystemService } from "../bindings/glancehud/internal/service";
 import { ModuleInfo, DataPayload, UpdateEvent, AppConfig, WidgetLayout, WidgetConfig } from "./types";
 import { Events } from "@wailsio/runtime";
 import { HudGrid, calcGridWidth } from "./components/HudGrid";
@@ -134,6 +134,10 @@ function App() {
           if (renderedRight > maxCol) maxCol = renderedRight;
         }
       });
+      // Safety: ensure at least some width if we have widgets but no layout (newly added)
+      if (maxCol === 0 && cfg.widgets.some(w => w.enabled !== false)) {
+        maxCol = 5; // Default width
+      }
       setMaxContentCols(maxCol);
 
     } catch {
@@ -203,12 +207,20 @@ function App() {
       setIsSettingsOpen(true);
     });
 
+    // Reload config/modules on backend request (e.g. new sidecar detected)
+    const unsubReload = Events.On("config:reload", () => {
+      console.log("[App] Config reload requested");
+      loadConfig();
+      loadModules();
+    });
+
     return () => {
       unsubStats();
       unsubWidget();
       unsubConfig();
       unsubMode();
       unsubOpenSettings();
+      unsubReload();
     };
   }, [loadConfig]);
 
@@ -268,6 +280,9 @@ function App() {
               if (renderedRight > maxCol) maxCol = renderedRight;
             }
           });
+          if (maxCol === 0 && mergedWidgets.some(w => w.enabled !== false)) {
+            maxCol = 5;
+          }
           setMaxContentCols(maxCol);
 
           return { ...cfg, widgets: mergedWidgets };
@@ -561,7 +576,5 @@ function App() {
     </>
   );
 }
-
-
 
 export default App;

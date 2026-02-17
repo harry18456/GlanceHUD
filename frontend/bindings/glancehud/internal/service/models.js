@@ -8,7 +8,7 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as protocol$0 from "./internal/protocol/models.js";
+import * as protocol$0 from "../protocol/models.js";
 
 /**
  * ModuleInfo pairs the short config ID with the display RenderConfig.

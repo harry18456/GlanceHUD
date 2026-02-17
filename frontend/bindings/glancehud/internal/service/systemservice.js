@@ -8,13 +8,13 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as application$0 from "../github.com/wailsapp/wails/v3/pkg/application/models.js";
+import * as application$0 from "../../../github.com/wailsapp/wails/v3/pkg/application/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as modules$0 from "./internal/modules/models.js";
+import * as modules$0 from "../modules/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import * as protocol$0 from "./internal/protocol/models.js";
+import * as protocol$0 from "../protocol/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -24,7 +24,7 @@ import * as $models from "./models.js";
  * @returns {$CancellablePromise<modules$0.AppConfig>}
  */
 export function GetConfig() {
-    return $Call.ByID(3513012090).then(/** @type {($result: any) => any} */(($result) => {
+    return $Call.ByID(1456817312).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType0($result);
     }));
 }
@@ -34,7 +34,7 @@ export function GetConfig() {
  * @returns {$CancellablePromise<{ [_ in string]?: protocol$0.DataPayload }>}
  */
 export function GetCurrentData() {
-    return $Call.ByID(2420040889).then(/** @type {($result: any) => any} */(($result) => {
+    return $Call.ByID(760557991).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType2($result);
     }));
 }
@@ -46,7 +46,7 @@ export function GetCurrentData() {
  * @returns {$CancellablePromise<protocol$0.ConfigSchema[]>}
  */
 export function GetModuleConfigSchema(moduleID) {
-    return $Call.ByID(2223895245, moduleID).then(/** @type {($result: any) => any} */(($result) => {
+    return $Call.ByID(1777888183, moduleID).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType4($result);
     }));
 }
@@ -56,7 +56,7 @@ export function GetModuleConfigSchema(moduleID) {
  * @returns {$CancellablePromise<$models.ModuleInfo[]>}
  */
 export function GetModules() {
-    return $Call.ByID(3895809045).then(/** @type {($result: any) => any} */(($result) => {
+    return $Call.ByID(837280723).then(/** @type {($result: any) => any} */(($result) => {
         return $$createType6($result);
     }));
 }
@@ -66,7 +66,19 @@ export function GetModules() {
  * @returns {$CancellablePromise<any>}
  */
 export function GetSystemStats() {
-    return $Call.ByID(847498860);
+    return $Call.ByID(3499803562);
+}
+
+/**
+ * RegisterSidecar handles lazy registration.
+ * If config is provided (template), it updates the sidecar definition.
+ * If it's a new sidecar, it also adds it to the persistent config (enabled by default).
+ * @param {string} id
+ * @param {protocol$0.RenderConfig | null} config
+ * @returns {$CancellablePromise<void>}
+ */
+export function RegisterSidecar(id, config) {
+    return $Call.ByID(1279511238, id, config);
 }
 
 /**
@@ -74,7 +86,7 @@ export function GetSystemStats() {
  * @returns {$CancellablePromise<void>}
  */
 export function SaveConfig(config) {
-    return $Call.ByID(2652722943, config);
+    return $Call.ByID(804382869, config);
 }
 
 /**
@@ -83,7 +95,7 @@ export function SaveConfig(config) {
  * @returns {$CancellablePromise<void>}
  */
 export function SetEditMode(enabled) {
-    return $Call.ByID(19265863, enabled);
+    return $Call.ByID(3057060141, enabled);
 }
 
 /**
@@ -92,7 +104,7 @@ export function SetEditMode(enabled) {
  * @returns {$CancellablePromise<void>}
  */
 export function SetWindowMode(mode) {
-    return $Call.ByID(2089993183, mode);
+    return $Call.ByID(154252141, mode);
 }
 
 /**
@@ -100,14 +112,14 @@ export function SetWindowMode(mode) {
  * @returns {$CancellablePromise<void>}
  */
 export function Start(app) {
-    return $Call.ByID(1339301388, app);
+    return $Call.ByID(4086161138, app);
 }
 
 /**
  * @returns {$CancellablePromise<void>}
  */
 export function StartMonitoring() {
-    return $Call.ByID(2618619198);
+    return $Call.ByID(3752777028);
 }
 
 /**
@@ -116,7 +128,17 @@ export function StartMonitoring() {
  * @returns {$CancellablePromise<void>}
  */
 export function UpdateOpacity(opacity) {
-    return $Call.ByID(2314449898, opacity);
+    return $Call.ByID(3549929656, opacity);
+}
+
+/**
+ * UpdateSidecarData updates data for a sidecar module
+ * @param {string} id
+ * @param {protocol$0.DataPayload | null} data
+ * @returns {$CancellablePromise<void>}
+ */
+export function UpdateSidecarData(id, data) {
+    return $Call.ByID(1950429558, id, data);
 }
 
 // Private type creation functions

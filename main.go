@@ -15,14 +15,15 @@ var assets embed.FS
 
 func main() {
 	// custom service
-	systemService := NewSystemService()
+	systemService := service.NewSystemService()
+	apiService := service.NewAPIService(systemService)
 
 	app := application.New(application.Options{
 		Name:        "GlanceHUD",
 		Description: "Lightweight system-vitals floating HUD",
 		Services: []application.Service{
 			application.NewService(systemService),
-			application.NewService(service.NewAPIService()),
+			application.NewService(apiService),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -34,6 +35,7 @@ func main() {
 
 	// Inject app instance and start monitoring
 	systemService.Start(app)
+	apiService.Start(app)
 
 	// Load config to check initial windowMode
 	config := systemService.GetConfig()
@@ -107,7 +109,7 @@ func main() {
 	}
 }
 
-func setupSystemTray(app *application.App, hudWindow application.Window, systemService *SystemService) {
+func setupSystemTray(app *application.App, hudWindow application.Window, systemService *service.SystemService) {
 	tray := app.SystemTray.New()
 
 	// Set tray icon

@@ -10,11 +10,14 @@ import (
 )
 
 type APIService struct {
-	app *application.App
+	app           *application.App
+	systemService *SystemService
 }
 
-func NewAPIService() *APIService {
-	return &APIService{}
+func NewAPIService(s *SystemService) *APIService {
+	return &APIService{
+		systemService: s,
+	}
 }
 
 func (s *APIService) Start(app *application.App) {
@@ -54,13 +57,22 @@ func (s *APIService) handleWidgetPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Emit event to Frontend using UpdateEvent format (matches stats:update shape)
-	s.app.Event.Emit("widget:update", protocol.UpdateEvent{
-		ID:   req.ModuleID,
-		Data: req.Data,
-	})
+	// Lazy Registration / Ensure Existence
+	// This creates the module in RAM if missing, and updates config if Template is provided
+	s.systemService.RegisterSidecar(req.ModuleID, req.Template)
 
-	fmt.Printf("[API] Pushed data for %s\n", req.ModuleID)
+	// Update Data
+	if req.Data != nil {
+		s.systemService.UpdateSidecarData(req.ModuleID, req.Data)
+	}
+
+	// NOTE: We don't emit "widget:update" anymore because SystemService.UpdateSidecarData emits "stats:update"
+	// and creates uniformity with native modules.
+	// However, frontend currently listens to BOTH "stats:update" and "widget:update".
+	// "widget:update" was a temporary hack in Phase 3.
+	// We should unify everything to "stats:update".
+
+	// fmt.Printf("[API] Pushed data for %s\n", req.ModuleID)
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }

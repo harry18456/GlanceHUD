@@ -14,7 +14,6 @@ interface Props {
 export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
     const [containerRef, { width, height }] = useContainerSize();
 
-    // Dynamic Prop Override: Merge static config.props with dynamic data.props
     const effectiveConfig = {
         ...config,
         props: {
@@ -22,6 +21,8 @@ export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
             ...data?.props
         }
     };
+
+    const isOffline = effectiveConfig.props.isOffline === true;
 
     const renderContent = () => {
         switch (config.type) {
@@ -47,8 +48,48 @@ export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
     };
 
     return (
-        <div ref={containerRef} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+        <div 
+            ref={containerRef} 
+            style={{ 
+                width: '100%', 
+                height: '100%', 
+                overflow: 'hidden',
+                position: 'relative',
+                filter: isOffline ? 'grayscale(100%) opacity(0.6)' : 'none',
+                transition: 'filter 0.3s ease-in-out'
+            }}
+        >
             {renderContent()}
+            {isOffline && (
+                <div 
+                    style={{
+                        position: 'absolute',
+                        top: 0, 
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(0,0,0,0.2)',
+                        zIndex: 10
+                    }}
+                >
+                    <span 
+                        style={{
+                            backgroundColor: '#333',
+                            color: '#ccc',
+                            padding: '2px 6px',
+                            borderRadius: 4,
+                            fontSize: 10,
+                            fontWeight: 600,
+                            border: '1px solid #555'
+                        }}
+                    >
+                        OFFLINE
+                    </span>
+                </div>
+            )}
         </div>
     );
 };

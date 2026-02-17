@@ -201,6 +201,11 @@ export const HudGrid: React.FC<HudGridProps> = ({
     return null;
   }
 
+  // Force emit layout to parent so it knows the extent (especially for auto-placed widgets)
+  React.useEffect(() => {
+    onLayoutChange(layout);
+  }, [layout, onLayoutChange]);
+
   return (
     <div
       className={editMode ? "hud-grid-edit" : ""}

@@ -52,10 +52,30 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 ### Phase 4: 生態系與擴充 (Ecosystem) 📅 規劃中
 
 - [ ] **雙向 HTTP API (Bi-directional API)**:
-  - **資料注入 (Push)**: 開放 `POST /api/widget`，允許外部程式 (Python, Bash, CI/CD) 推送自定義數據到 HUD 顯示 (例如：ML Training Loss)。
+  - **資料注入 (Push)**: 開放 `POST /api/widget`，支援 **Lazy Registration** (第一次推送帶 Template 即自動註冊) 與 **Offline 機制** (10秒無心跳自動標記離線)。
   - **狀態查詢 (Pull)**: 開放 `GET /api/stats`，允許外部裝置 (如 Home Assistant, Stream Deck) 讀取當前系統監控數據。
 - [ ] **插件系統 (Sidecar Plugins)**:
   - 透過設定檔定義並自動啟動外部腳本 (Sidecar)，透過標準輸入/輸出 (stdio) 或 HTTP 與主程式溝通。
+  - **範例**: 提供 Python Script 範例 (`examples/python-sidecar.py`)，演示如何獲取 GPU/天氣資訊並推送到 HUD。
+
+### Phase 5: 品質與規範 (Quality Assurance) 📅 規劃中
+
+- [ ] **Coding Style**: 統一前端 (ESLint/Prettier) 與後端 (Go Fmt/Lint) 程式碼風格。
+- [ ] **Unit Tests**: 增加核心邏輯的單元測試，確保穩定性。
+- [ ] **CI/CD**: 設定自動化建置與測試流程。
+
+### Phase 6: 跨平台驗證 (Cross-Platform) 📅 規劃中
+
+- [ ] **Windows Support**:
+  - [ ] Windows 11 (x64)
+  - [ ] Windows on ARM (e.g. Surface Pro 9/11)
+- [ ] **macOS Support**:
+  - [ ] macOS (Intel)
+  - [ ] macOS (Apple Silicon M-Series)
+- [ ] **Linux Support**:
+  - [ ] Ubuntu (x64)
+  - [ ] Arch Linux
+  - [ ] Raspberry Pi OS (ARM64)
 
 ---
 

@@ -57,6 +57,14 @@ export class AppConfig {
              */
             this["windowMode"] = "";
         }
+        if (!("debugConsole" in $$source)) {
+            /**
+             * show debug console
+             * @member
+             * @type {boolean}
+             */
+            this["debugConsole"] = false;
+        }
 
         Object.assign(this, $$source);
     }

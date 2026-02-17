@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { SystemService } from "../../bindings/glancehud";
+import { SystemService } from "../../bindings/glancehud/internal/service";
 import { AppConfig, ConfigSchema, ModuleInfo } from "../types";
 import { DynamicForm } from "./DynamicForm";
 
