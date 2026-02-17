@@ -28,7 +28,6 @@ export function DebugConsole() {
 
     console.log = (...args) => {
       originalLog(...args);
-      // Filter out redundant logs if needed, but show all for now
       addLog("LOG", args);
     };
     console.error = (...args) => {
@@ -55,30 +54,29 @@ export function DebugConsole() {
 
   return (
     <div
-      className="no-drag"
+      className="no-drag no-scrollbar"
       style={{
         position: "relative",
         marginTop: 4,
         marginLeft: 4,
         marginRight: 4,
-        // width taken from flex parent (app container)
-        height: isExpanded ? 250 : 32,
-        background: "rgba(0,0,0,0.85)",
+        height: isExpanded ? 250 : 24,
+        background: isExpanded ? "rgba(0,0,0,0.85)" : "rgba(0,0,0,0.4)",
         backdropFilter: "blur(10px)",
         color: "#0f0",
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 10,
-        overflowY: "auto",
+        overflowY: isExpanded ? "auto" : "hidden",
         zIndex: 999999,
-        padding: 8,
+        padding: isExpanded ? 8 : "0 8px",
         pointerEvents: "auto",
-        border: "1px solid rgba(255,255,255,0.1)",
-        borderRadius: 8,
+        border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 6,
         whiteSpace: "pre-wrap",
-        transition: "height 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
         boxSizing: "border-box",
         userSelect: "text",
-        cursor: "text",
+        cursor: isExpanded ? "text" : "pointer",
       }}
       ref={scrollRef}
     >
@@ -86,17 +84,20 @@ export function DebugConsole() {
         style={{ 
           position: 'sticky', 
           top: 0, 
-          background: 'rgba(0,0,0,0.5)', 
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          marginBottom: 4, 
+          background: isExpanded ? 'rgba(0,0,0,0.5)' : 'transparent',
+          borderBottom: isExpanded ? '1px solid rgba(255,255,255,0.1)' : 'none',
+          marginBottom: isExpanded ? 4 : 0,
           fontWeight: 600, 
-          color: "rgba(255,255,255,0.9)",
+          color: isExpanded ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.5)",
           display: "flex",
           justifyContent: "space-between",
+          alignItems: "center",
           cursor: "pointer",
           userSelect: "none",
-          padding: "2px 4px",
+          padding: isExpanded ? "2px 4px" : "0",
           borderRadius: 4,
+          height: isExpanded ? 'auto' : 24,
+          fontSize: 9,
         }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -108,7 +109,7 @@ export function DebugConsole() {
               navigator.clipboard.writeText(logs.join("\n"));
             }}
             style={{ 
-              fontSize: 10, 
+              fontSize: 9, 
               cursor: "pointer",
               background: "rgba(255,255,255,0.1)",
               border: "none",
@@ -126,7 +127,7 @@ export function DebugConsole() {
               logsRef.current = [];
             }}
             style={{ 
-              fontSize: 10, 
+              fontSize: 9, 
               cursor: "pointer",
               background: "rgba(255,255,255,0.1)",
               border: "none",
@@ -140,16 +141,12 @@ export function DebugConsole() {
         </div>
       </div>
       
-      {isExpanded ? (
+      {isExpanded && (
         logs.map((log, i) => (
           <div key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", padding: "2px 0" }}>
             {log}
           </div>
         ))
-      ) : (
-        <div style={{ color: "#888", fontStyle: "italic" }}>
-          {logs.length > 0 ? logs[logs.length - 1] : "No logs"}
-        </div>
       )}
     </div>
   );

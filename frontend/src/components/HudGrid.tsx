@@ -1,44 +1,35 @@
 import React, { useMemo, useCallback } from "react";
-import { GridLayout, type Layout, type LayoutItem } from "react-grid-layout";
+import { GridLayout, getCompactor, type Layout, type LayoutItem } from "react-grid-layout";
 import { motion } from "framer-motion";
 import { ModuleInfo, DataPayload, WidgetLayout } from "../types";
 import { UniversalWidget } from "./UniversalWidget";
 import "react-grid-layout/css/styles.css";
 
-const CELL_WIDTH = 190; // px per grid column (before gap)
-const ROW_HEIGHT = 40;  // px per grid row
+// Free positioning (no auto-compaction) + collision prevention (no overlap)
+const freeCompactor = getCompactor(null, false, true);
+
+// Fine-grained grid units for smoother drag/resize experience
+const CELL_WIDTH = 80;   // px per grid column
+const ROW_HEIGHT = 40;   // px per grid row
 const GRID_GAP: readonly [number, number] = [8, 8];
 const GRID_PADDING: readonly [number, number] = [0, 0];
 
-/** Default grid height for each widget type */
-function defaultHeight(type: string): number {
+/**
+ * Default and minimum grid size per widget type.
+ * The default size is also the minimum resize constraint.
+ */
+function defaultSize(type: string): { w: number; h: number } {
   switch (type) {
     case "gauge":
-      return 3;
+      return { w: 2, h: 3 };   // ~160×120px
     case "bar-list":
-      return 4;
+      return { w: 3, h: 3 };   // ~240×120px
     case "key-value":
-      return 3;
+      return { w: 2, h: 3 };   // ~160×120px
     case "text":
-      return 2;
+      return { w: 2, h: 2 };   // ~160×80px
     default:
-      return 3;
-  }
-}
-
-/** Minimum grid size constraints per widget type */
-function minSize(type: string): { minW: number; minH: number } {
-  switch (type) {
-    case "gauge":
-      return { minW: 1, minH: 3 };
-    case "bar-list":
-      return { minW: 1, minH: 3 };
-    case "key-value":
-      return { minW: 1, minH: 2 };
-    case "text":
-      return { minW: 1, minH: 2 };
-    default:
-      return { minW: 1, minH: 2 };
+      return { w: 2, h: 3 };
   }
 }
 
@@ -56,23 +47,19 @@ function generateDefaultLayout(
   modules: ModuleInfo[],
   gridColumns: number
 ): LayoutItem[] {
-  let y = 0;
   return modules
     .filter((m) => m.enabled)
-    .map((mod) => {
-      const h = defaultHeight(mod.config.type);
-      const { minW, minH } = minSize(mod.config.type);
-      const item: LayoutItem = {
+    .map((mod, idx) => {
+      const { w, h } = defaultSize(mod.config.type);
+      return {
         i: mod.moduleId,
-        x: 0,
-        y,
-        w: gridColumns,
+        x: (idx % gridColumns) * w,
+        y: Math.floor(idx / gridColumns) * h,
+        w,
         h,
-        minW,
-        minH,
+        minW: w,
+        minH: h,
       };
-      y += h;
-      return item;
     });
 }
 
@@ -88,37 +75,35 @@ function configToLayouts(
     return generateDefaultLayout(modules, gridColumns);
   }
 
-  const typeMap = buildTypeMap(modules);
-  let maxY = 0;
   const layouts: LayoutItem[] = [];
+  let idx = 0;
 
   for (const mod of modules.filter((m) => m.enabled)) {
-    const { minW, minH } = minSize(mod.config.type);
+    const { w: defW, h: defH } = defaultSize(mod.config.type);
     const saved = widgetLayouts[mod.moduleId];
+
     if (saved) {
       layouts.push({
         i: mod.moduleId,
         x: saved.x,
         y: saved.y,
-        w: saved.w,
-        h: saved.h,
-        minW,
-        minH,
+        w: Math.max(saved.w, defW),
+        h: Math.max(saved.h, defH),
+        minW: defW,
+        minH: defH,
       });
-      maxY = Math.max(maxY, saved.y + saved.h);
     } else {
-      const h = defaultHeight(mod.config.type);
       layouts.push({
         i: mod.moduleId,
-        x: 0,
-        y: maxY,
-        w: gridColumns,
-        h,
-        minW,
-        minH,
+        x: (idx % gridColumns) * defW,
+        y: Math.floor(idx / gridColumns) * defH,
+        w: defW,
+        h: defH,
+        minW: defW,
+        minH: defH,
       });
-      maxY += h;
     }
+    idx++;
   }
 
   return layouts;
@@ -134,8 +119,11 @@ interface HudGridProps {
   dataMap: Record<string, DataPayload>;
   widgetLayouts: Record<string, WidgetLayout>;
   gridColumns: number;
+  contentWidth: number; // Actual visible width (derived from content extent)
   editMode: boolean;
   onLayoutChange: (layout: Layout) => void;
+  onDrag?: (layout: Layout, oldItem: any, newItem: any, placeholder: any, e: any, element: any) => void;
+  onResize?: (layout: Layout, oldItem: any, newItem: any, placeholder: any, e: any, element: any) => void;
 }
 
 export const HudGrid: React.FC<HudGridProps> = ({
@@ -143,8 +131,11 @@ export const HudGrid: React.FC<HudGridProps> = ({
   dataMap,
   widgetLayouts,
   gridColumns,
+  contentWidth,
   editMode,
   onLayoutChange,
+  onDrag,
+  onResize,
 }) => {
   const enabledModules = useMemo(
     () => modules.filter((m) => m.enabled),
@@ -176,15 +167,19 @@ export const HudGrid: React.FC<HudGridProps> = ({
   return (
     <div
       className={editMode ? "hud-grid-edit" : ""}
-      style={editMode ? {
-        "--grid-col-w": `${colWidthWithGap}px`,
-        "--grid-row-h": `${rowHeightWithGap}px`,
-      } as React.CSSProperties : undefined}
+      style={{
+        width: contentWidth,
+        ...(editMode ? {
+          "--grid-col-w": `${colWidthWithGap}px`,
+          "--grid-row-h": `${rowHeightWithGap}px`,
+        } as React.CSSProperties : {}),
+      }}
     >
       <GridLayout
         className="hud-grid"
         layout={layout}
         width={width}
+        compactor={freeCompactor}
         gridConfig={{
           cols: gridColumns,
           rowHeight: ROW_HEIGHT,
@@ -194,30 +189,25 @@ export const HudGrid: React.FC<HudGridProps> = ({
         }}
         dragConfig={{
           enabled: editMode,
-          handle: ".widget-drag-handle",
         }}
         resizeConfig={{
           enabled: editMode,
-          handles: ["se"],
+          handles: ["se", "e", "s", "sw", "ne", "nw", "n", "w"],
         }}
         onLayoutChange={handleLayoutChange}
+        onDrag={onDrag}
+        onResize={onResize}
       >
         {enabledModules.map((mod, idx) => (
-          <div key={mod.moduleId} className={editMode ? "grid-item-edit" : ""}>
-            {editMode && (
-              <div className="widget-drag-handle no-drag">
-                <svg width="16" height="6" viewBox="0 0 16 6" fill="currentColor" opacity="0.35">
-                  <circle cx="4" cy="2" r="1.2" />
-                  <circle cx="8" cy="2" r="1.2" />
-                  <circle cx="12" cy="2" r="1.2" />
-                </svg>
-              </div>
-            )}
+          <div
+            key={mod.moduleId}
+            className={`hud-widget-cell ${editMode ? "hud-cell-edit" : "hud-cell-view"}`}
+          >
             <motion.div
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: idx * 0.06 }}
-              style={{ height: "100%", paddingTop: editMode ? 20 : 0 }}
+              style={{ height: "100%" }}
             >
               <UniversalWidget
                 config={mod.config}

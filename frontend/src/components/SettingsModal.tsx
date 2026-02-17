@@ -171,39 +171,6 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
           />
         </div>
 
-        {/* Grid columns */}
-        <div style={{ marginTop: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>
-              格線欄數
-            </span>
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
-              {config.gridColumns || 2}
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
-            {[1, 2, 3, 4].map((cols) => (
-              <button
-                key={cols}
-                onClick={() => setConfig({ ...config, gridColumns: cols })}
-                style={{
-                  flex: 1,
-                  padding: "4px 0",
-                  fontSize: 11,
-                  fontWeight: (config.gridColumns || 2) === cols ? 600 : 400,
-                  background: (config.gridColumns || 2) === cols ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
-                  border: (config.gridColumns || 2) === cols ? "1px solid var(--color-info)" : "1px solid var(--glass-border)",
-                  borderRadius: 6,
-                  color: (config.gridColumns || 2) === cols ? "var(--text-primary)" : "var(--text-secondary)",
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
-              >
-                {cols}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div

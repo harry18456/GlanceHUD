@@ -29,8 +29,18 @@ function App() {
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [pendingLayouts, setPendingLayouts] = useState<Layout | null>(null);
 
-  const gridColumns = appConfig?.gridColumns || 2;
-  const gridWidth = useMemo(() => calcGridWidth(gridColumns), [gridColumns]);
+  // Dynamic width: tracks the rightmost content edge (in grid units).
+  // Window width is derived from this, NOT from RGL cols.
+  // RGL cols is set to a large constant (like vertical maxRows=Infinity).
+  const [maxContentCols, setMaxContentCols] = useState(5); // 5 cols × 80px = 400px
+
+  // RGL cols = large constant so horizontal placement is unrestricted
+  // (mirrors maxRows: Infinity for vertical freedom)
+  const RGL_MAX_COLS = 50;
+
+  // Window width is based on actual content extent, not RGL cols
+  const gridWidth = useMemo(() => calcGridWidth(maxContentCols), [maxContentCols]);
+  
   // Settings panel needs at least 400px; use grid width otherwise
   const MIN_SETTINGS_WIDTH = 376; // 400 - 24 outer padding
   const effectiveWidth = isSettingsOpen ? Math.max(gridWidth, MIN_SETTINGS_WIDTH) : gridWidth;
@@ -48,17 +58,57 @@ function App() {
     return map;
   }, [appConfig]);
 
+  /**
+   * Migrate old grid layouts (190×120 grid units) to new fine grid (80×40).
+   * Detection: if ALL widgets have w <= 2 and h <= 2, assume old format.
+   */
+  const migrateLayouts = useCallback((cfg: AppConfig): AppConfig => {
+    const hasLayouts = cfg.widgets.some(w => w.layout);
+    if (!hasLayouts) return cfg;
+
+    const isOldFormat = cfg.widgets.every(w =>
+      !w.layout || (w.layout.w <= 2 && w.layout.h <= 2)
+    );
+    if (!isOldFormat) return cfg;
+
+    console.log("[App] Migrating old grid layouts to new fine grid units");
+    const migratedWidgets = cfg.widgets.map(w => {
+      if (!w.layout) return w;
+      return {
+        ...w,
+        layout: {
+          x: w.layout.x * 2,
+          y: w.layout.y * 3,
+          w: Math.max(w.layout.w * 2, 2),
+          h: Math.max(w.layout.h * 3, 2),
+        }
+      };
+    });
+    return { ...cfg, widgets: migratedWidgets };
+  }, []);
+
   // Load config and apply opacity
   const loadConfig = useCallback(async () => {
     try {
-      const cfg = await SystemService.GetConfig();
+      const raw = await SystemService.GetConfig();
+      const cfg = migrateLayouts(raw);
       setAppConfig(cfg);
       applyOpacity(cfg.opacity || 0.72);
       setIsLocked(cfg.windowMode === "locked");
+      
+      // Calculate initial columns based on widgets (new grid units)
+      let maxCol = 0;
+      cfg.widgets.forEach(w => {
+        if (w.layout) {
+          const right = w.layout.x + w.layout.w;
+          if (right > maxCol) maxCol = right;
+        }
+      });
+      setMaxContentCols(maxCol);
     } catch {
       // silent
     }
-  }, []);
+  }, [migrateLayouts]);
 
   useEffect(() => {
     loadConfig();
@@ -183,11 +233,18 @@ function App() {
     loadModules();
   };
 
-  // Track layout changes while in edit mode
+  // Track layout changes — update window width based on content extent
   const handleLayoutChange = useCallback((layout: Layout) => {
     if (isEditMode) {
       setPendingLayouts(layout);
     }
+    // Always update maxContentCols from actual content positions
+    let maxCol = 0;
+    layout.forEach(l => {
+      const right = l.x + l.w;
+      if (right > maxCol) maxCol = right;
+    });
+    setMaxContentCols(maxCol);
   }, [isEditMode]);
 
   // Refs to avoid stale closures in the layout save effect
@@ -201,24 +258,60 @@ function App() {
     const layouts = pendingLayoutsRef.current;
     const config = appConfigRef.current;
     if (!isEditMode && layouts && config) {
+      // Normalize: shift all items so top-left starts at (0,0)
+      const minX = Math.min(...layouts.map(l => l.x));
+      const minY = Math.min(...layouts.map(l => l.y));
+
       const newWidgets = config.widgets.map((w) => {
         const layoutItem = layouts.find((l) => l.i === w.id);
         if (layoutItem) {
           return {
             ...w,
-            layout: { x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h },
+            layout: {
+              x: layoutItem.x - minX,
+              y: layoutItem.y - minY,
+              w: layoutItem.w,
+              h: layoutItem.h,
+            },
           };
         }
         return w;
       });
+      // We don't need to save gridColumns anymore as it is derived
       const newConfig = { ...config, widgets: newWidgets };
       setAppConfig(newConfig);
       SystemService.SaveConfig(newConfig).catch((err: unknown) => {
         console.error("Failed to save layout config:", err);
       });
       setPendingLayouts(null);
+
+      // Recalculate maxContentCols after normalization
+      let maxCol = 0;
+      newWidgets.forEach(w => {
+        if (w.layout) {
+          const right = w.layout.x + w.layout.w;
+          if (right > maxCol) maxCol = right;
+        }
+      });
+      setMaxContentCols(maxCol);
     }
   }, [isEditMode]);
+
+  // Handle drag — update content extent live
+  const handleDrag = useCallback((_layout: Layout, _oldItem: any, _newItem: any, placeholder: any) => {
+    if (placeholder) {
+      const rightEdge = placeholder.x + placeholder.w;
+      setMaxContentCols(prev => Math.max(prev, rightEdge));
+    }
+  }, []);
+
+  // Handle resize — update content extent live
+  const handleResize = useCallback((_layout: Layout, _oldItem: any, newItem: any) => {
+    if (newItem) {
+      const rightEdge = newItem.x + newItem.w;
+      setMaxContentCols(prev => Math.max(prev, rightEdge));
+    }
+  }, []);
 
   // Toggle edit mode from header button
   const handleToggleEdit = () => {
@@ -373,9 +466,12 @@ function App() {
                 modules={modules}
                 dataMap={dataMap}
                 widgetLayouts={widgetLayouts}
-                gridColumns={gridColumns}
+                gridColumns={RGL_MAX_COLS}
+                contentWidth={gridWidth}
                 editMode={isEditMode}
                 onLayoutChange={handleLayoutChange}
+                onDrag={handleDrag}
+                onResize={handleResize}
               />
             ) : modules.length === 0 ? (
               <div

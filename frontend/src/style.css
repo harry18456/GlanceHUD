@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
+}
+
 /* ── Design Tokens ── */
 :root {
   /* Status Colors */
@@ -92,17 +101,35 @@ body {
 /* ── Grid Layout ── */
 .hud-grid .react-grid-item {
   transition: all 0.2s ease;
+  /* Allow overflow so our internal cells can handle clipping/borders
+     RGL sets overflow: hidden by default usually, but we override it here
+     to ensure our borders are visible if they go outside? 
+     No, we want containment. 
+  */
+  overflow: visible; 
 }
 
+/*
+   Placeholder styling:
+   The placeholder is an RGL item with 190x120 size.
+*/
 .hud-grid .react-grid-item.react-grid-placeholder {
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px dashed rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12) !important;
+  border: 1px dashed rgba(56, 189, 248, 0.4) !important;
   border-radius: 10px;
+  opacity: 1;
+  z-index: 5;
+}
+
+/* Remove expanded ::after */
+.hud-grid .react-grid-item.react-grid-placeholder::after {
+  content: none;
 }
 
 /* ── Edit Mode ── */
 .hud-grid-edit {
   position: relative;
+  overflow: hidden; /* Clip grid overlay beyond visible content width */
   --wails-draggable: no-drag;
 }
 
@@ -118,68 +145,125 @@ body {
   content: "";
   position: absolute;
   inset: 0;
+  /* Revert to subtle white grid lines */
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: var(--grid-col-w, 198px) var(--grid-row-h, 48px);
+  /* 
+     Center alignment:
+     Gap center is at -4px (relative to Item start 0).
+     We want the grid line to pass through the Gap center.
+     offset: -4px -4px
+  */
+  background-position: -4px -4px;
   pointer-events: none;
   z-index: 0;
   border-radius: 10px;
 }
 
-.grid-item-edit {
+/* RGL Item Base - The Source of Truth for Size (190x120) */
+.hud-widget-cell {
   position: relative;
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  overflow: hidden;
+  overflow: hidden; /* Ensure content is clipped */
+  height: 100%;
 }
 
-/* Ensure grid items clip their content */
-.hud-grid .react-grid-item {
-  overflow: hidden;
+/* Normal Mode Style */
+.hud-cell-view {
+  border: 1px solid rgba(255, 255, 255, 0.15); /* VISIBLE BORDER */
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s ease;
 }
 
-.widget-drag-handle {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 20px;
-  cursor: grab;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px 10px 0 0;
-  transition: background 0.15s;
+/* Edit Mode Style */
+.hud-cell-edit {
+  border: 1px dashed rgba(255, 255, 255, 0.3); /* Clear dashed border */
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s ease;
+  cursor: grab; /* Whole cell is draggable */
 }
 
-.widget-drag-handle:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.widget-drag-handle:active {
+.hud-cell-edit:active {
   cursor: grabbing;
-  background: rgba(255, 255, 255, 0.12);
 }
 
-/* react-grid-layout resize handle */
+/* react-grid-layout resize handles — all 8 directions */
 .hud-grid .react-grid-item > .react-resizable-handle {
   background: none;
+  position: absolute;
+  z-index: 30;
 }
 
-.hud-grid .react-grid-item > .react-resizable-handle::after {
-  content: "";
-  position: absolute;
-  right: 4px;
-  bottom: 4px;
-  width: 8px;
+/* Corner handles — 16x16 hit area */
+.hud-grid .react-grid-item > .react-resizable-handle-se {
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 16px;
+  height: 16px;
+  cursor: se-resize;
+}
+.hud-grid .react-grid-item > .react-resizable-handle-sw {
+  left: 0 !important;
+  bottom: 0 !important;
+  width: 16px;
+  height: 16px;
+  cursor: sw-resize;
+}
+.hud-grid .react-grid-item > .react-resizable-handle-ne {
+  right: 0 !important;
+  top: 0 !important;
+  width: 16px;
+  height: 16px;
+  cursor: ne-resize;
+}
+.hud-grid .react-grid-item > .react-resizable-handle-nw {
+  left: 0 !important;
+  top: 0 !important;
+  width: 16px;
+  height: 16px;
+  cursor: nw-resize;
+}
+
+/* Edge handles — thin strips along edges */
+.hud-grid .react-grid-item > .react-resizable-handle-n {
+  top: 0 !important;
+  left: 16px !important;
+  right: 16px !important;
+  width: auto;
   height: 8px;
-  border-right: 2px solid rgba(255, 255, 255, 0.2);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0 0 2px 0;
+  cursor: n-resize;
+}
+.hud-grid .react-grid-item > .react-resizable-handle-s {
+  bottom: 0 !important;
+  left: 16px !important;
+  right: 16px !important;
+  width: auto;
+  height: 8px;
+  cursor: s-resize;
+}
+.hud-grid .react-grid-item > .react-resizable-handle-e {
+  right: 0 !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 8px;
+  height: auto;
+  cursor: e-resize;
+}
+.hud-grid .react-grid-item > .react-resizable-handle-w {
+  left: 0 !important;
+  top: 16px !important;
+  bottom: 16px !important;
+  width: 8px;
+  height: auto;
+  cursor: w-resize;
+}
+
+/* Hide all default visual indicators — clean invisible handles */
+.hud-grid .react-grid-item > .react-resizable-handle::after {
+  content: none;
 }
 
 /* ── Locked Mode ── */

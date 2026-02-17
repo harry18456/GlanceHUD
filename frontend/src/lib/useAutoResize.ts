@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Window } from "@wailsio/runtime";
 
 const DEFAULT_WIDTH = 400;
-const OUTER_PADDING = 24; // 12px padding on each side in App.tsx
+const OUTER_PADDING = 8; // 4px padding on each side in App.tsx
 
 /**
  * Whether Window.Show() has been called.
