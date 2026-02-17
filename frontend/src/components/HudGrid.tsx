@@ -63,15 +63,46 @@ function generateDefaultLayout(
     });
 }
 
+/** Check if a candidate rect overlaps with any existing layout item */
+function hasCollision(
+  layouts: LayoutItem[],
+  x: number, y: number, w: number, h: number,
+  ignoreId?: string
+): boolean {
+  return layouts.some((l) => {
+    if (l.i === ignoreId) return false;
+    return x < l.x + l.w && x + w > l.x && y < l.y + l.h && y + h > l.y;
+  });
+}
+
+/** Find a free position by scanning rows downward */
+function findFreePosition(
+  layouts: LayoutItem[],
+  w: number, h: number,
+  gridColumns: number
+): { x: number; y: number } {
+  for (let row = 0; ; row++) {
+    for (let col = 0; col <= gridColumns - w; col++) {
+      if (!hasCollision(layouts, col, row, w, h)) {
+        return { x: col, y: row };
+      }
+    }
+  }
+}
+
 /** Convert WidgetLayout map to react-grid-layout Layout array */
 function configToLayouts(
   modules: ModuleInfo[],
   widgetLayouts: Record<string, WidgetLayout>,
-  gridColumns: number
+  gridColumns: number,
+  offset: { x: number; y: number }
 ): LayoutItem[] {
   const hasAnyLayout = Object.keys(widgetLayouts).length > 0;
 
   if (!hasAnyLayout) {
+    // Default layout starts at (0,0), so no offset needed usually, 
+    // but strictly speaking we should probably respect something. 
+    // For now assume default generation is always fresh and 0-based.
     return generateDefaultLayout(modules, gridColumns);
   }
 
@@ -82,27 +113,31 @@ function configToLayouts(
     const { w: defW, h: defH } = defaultSize(mod.config.type);
     const saved = widgetLayouts[mod.moduleId];
 
+    let x: number, y: number, w: number, h: number;
+
     if (saved) {
-      layouts.push({
-        i: mod.moduleId,
-        x: saved.x,
-        y: saved.y,
-        w: Math.max(saved.w, defW),
-        h: Math.max(saved.h, defH),
-        minW: defW,
-        minH: defH,
-      });
+      w = Math.max(saved.w, defW);
+      h = Math.max(saved.h, defH);
+      // Convert Model -> Render (Shift by offset)
+      x = saved.x - offset.x;
+      y = saved.y - offset.y;
+
+      // If saved position collides with already-placed widgets, find a free spot
+      // Note: x, y here are already in Render Space
+      if (hasCollision(layouts, x, y, w, h)) {
+        const free = findFreePosition(layouts, w, h, gridColumns);
+        x = free.x;
+        y = free.y;
+      }
     } else {
-      layouts.push({
-        i: mod.moduleId,
-        x: (idx % gridColumns) * defW,
-        y: Math.floor(idx / gridColumns) * defH,
-        w: defW,
-        h: defH,
-        minW: defW,
-        minH: defH,
-      });
+      w = defW;
+      h = defH;
+      const free = findFreePosition(layouts, w, h, gridColumns);
+      x = free.x;
+      y = free.y;
     }
+
+    layouts.push({ i: mod.moduleId, x, y, w, h, minW: defW, minH: defH });
     idx++;
   }
 
@@ -121,6 +156,7 @@ interface HudGridProps {
   gridColumns: number;
   contentWidth: number; // Actual visible width (derived from content extent)
   editMode: boolean;
+  layoutOffset?: { x: number; y: number }; // Virtual Origin Offset
   onLayoutChange: (layout: Layout) => void;
   onDrag?: (layout: Layout, oldItem: any, newItem: any, placeholder: any, e: any, element: any) => void;
   onResize?: (layout: Layout, oldItem: any, newItem: any, placeholder: any, e: any, element: any) => void;
@@ -133,6 +169,7 @@ export const HudGrid: React.FC<HudGridProps> = ({
   gridColumns,
   contentWidth,
   editMode,
+  layoutOffset = { x: 0, y: 0 },
   onLayoutChange,
   onDrag,
   onResize,
@@ -143,8 +180,8 @@ export const HudGrid: React.FC<HudGridProps> = ({
   );
 
   const layout = useMemo(
-    () => configToLayouts(modules, widgetLayouts, gridColumns),
-    [modules, widgetLayouts, gridColumns]
+    () => configToLayouts(modules, widgetLayouts, gridColumns, layoutOffset),
+    [modules, widgetLayouts, gridColumns, layoutOffset]
   );
 
   const width = calcGridWidth(gridColumns);

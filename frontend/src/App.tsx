@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { SystemService } from "../bindings/glancehud";
-import { ModuleInfo, DataPayload, UpdateEvent, AppConfig, WidgetLayout } from "./types";
+import { ModuleInfo, DataPayload, UpdateEvent, AppConfig, WidgetLayout, WidgetConfig } from "./types";
 import { Events } from "@wailsio/runtime";
 import { HudGrid, calcGridWidth } from "./components/HudGrid";
 import { SettingsModal } from "./components/SettingsModal";
@@ -20,6 +20,27 @@ function applyOpacity(opacity: number) {
 
 import { DebugConsole } from "./components/DebugConsole";
 
+/** Helper: Calculate bounding box origin for enabled widgets */
+function getLayoutOrigin(widgets: WidgetConfig[]): { x: number, y: number } {
+  const enabled = widgets.filter(w => w.enabled !== false && w.layout);
+  if (enabled.length === 0) return { x: 0, y: 0 };
+
+  let minX = Infinity;
+  let minY = Infinity;
+
+  enabled.forEach(w => {
+    if (w.layout) {
+      if (w.layout.x < minX) minX = w.layout.x;
+      if (w.layout.y < minY) minY = w.layout.y;
+    }
+  });
+
+  return { 
+    x: minX === Infinity ? 0 : minX, 
+    y: minY === Infinity ? 0 : minY 
+  };
+}
+
 function App() {
   const [modules, setModules] = useState<ModuleInfo[]>([]);
   const [dataMap, setDataMap] = useState<Record<string, DataPayload>>({});
@@ -28,6 +49,12 @@ function App() {
   const [isLocked, setIsLocked] = useState(false);
   const [appConfig, setAppConfig] = useState<AppConfig | null>(null);
   const [pendingLayouts, setPendingLayouts] = useState<Layout | null>(null);
+
+  // Virtual Origin: Calculate offset to shift widgets to (0,0) for rendering
+  // This allows us to "crop" empty space on top/left without changing the persistent model coordinates
+  const layoutOffset = useMemo(() => {
+    return getLayoutOrigin(appConfig?.widgets || []);
+  }, [appConfig]);
 
   // Dynamic width: tracks the rightmost content edge (in grid units).
   // Window width is derived from this, NOT from RGL cols.
@@ -92,19 +119,23 @@ function App() {
     try {
       const raw = await SystemService.GetConfig();
       const cfg = migrateLayouts(raw);
+
       setAppConfig(cfg);
       applyOpacity(cfg.opacity || 0.72);
       setIsLocked(cfg.windowMode === "locked");
       
-      // Calculate initial columns based on widgets (new grid units)
+      // Calculate initial columns based on enabled widgets only (Virtual Origin)
+      const origin = getLayoutOrigin(cfg.widgets);
       let maxCol = 0;
       cfg.widgets.forEach(w => {
-        if (w.layout) {
+        if (w.enabled !== false && w.layout) {
           const right = w.layout.x + w.layout.w;
-          if (right > maxCol) maxCol = right;
+          const renderedRight = right - origin.x;
+          if (renderedRight > maxCol) maxCol = renderedRight;
         }
       });
       setMaxContentCols(maxCol);
+
     } catch {
       // silent
     }
@@ -218,11 +249,27 @@ function App() {
           for (const w of prev.widgets) {
             if (w.layout) prevLayoutMap[w.id] = w.layout;
           }
-          const mergedWidgets = cfg.widgets.map((w) => ({
+          let mergedWidgets: WidgetConfig[] = cfg.widgets.map((w) => ({
             ...w,
             layout: prevLayoutMap[w.id] ?? w.layout,
           }));
-          console.log("[App] Merged config widgets:", mergedWidgets);
+
+          // Calculate Rendered Layout Width (Virtual Origin)
+          // We don't change the model coordinates (mergedWidgets), 
+          // but we calculate maxCol based on how they WOULD be rendered (shifted by minX).
+          const origin = getLayoutOrigin(mergedWidgets);
+          
+          let maxCol = 0;
+          mergedWidgets.forEach(w => {
+            if (w.enabled !== false && w.layout) {
+              // Width = Right Edge - Origin X
+              const right = w.layout.x + w.layout.w;
+              const renderedRight = right - origin.x;
+              if (renderedRight > maxCol) maxCol = renderedRight;
+            }
+          });
+          setMaxContentCols(maxCol);
+
           return { ...cfg, widgets: mergedWidgets };
         });
         applyOpacity(cfg.opacity || 0.72);
@@ -234,18 +281,27 @@ function App() {
   };
 
   // Track layout changes — update window width based on content extent
+  // Track layout changes — update window width based on content extent
   const handleLayoutChange = useCallback((layout: Layout) => {
+    // RGL returns layout in SHIFTED coordinates (relative to 0,0)
+    // We need to add the offset back to get Model coordinates
+    const modelLayout = layout.map(l => ({
+      ...l,
+      x: l.x + layoutOffset.x,
+      y: l.y + layoutOffset.y
+    }));
+
     if (isEditMode) {
-      setPendingLayouts(layout);
+      setPendingLayouts(modelLayout);
     }
-    // Always update maxContentCols from actual content positions
+    // Always update maxContentCols from actual content positions (shifted)
     let maxCol = 0;
     layout.forEach(l => {
       const right = l.x + l.w;
       if (right > maxCol) maxCol = right;
     });
     setMaxContentCols(maxCol);
-  }, [isEditMode]);
+  }, [isEditMode, layoutOffset]);
 
   // Refs to avoid stale closures in the layout save effect
   const appConfigRef = useRef(appConfig);
@@ -469,6 +525,7 @@ function App() {
                 gridColumns={RGL_MAX_COLS}
                 contentWidth={gridWidth}
                 editMode={isEditMode}
+                layoutOffset={layoutOffset}
                 onLayoutChange={handleLayoutChange}
                 onDrag={handleDrag}
                 onResize={handleResize}
