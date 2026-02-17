@@ -8,15 +8,16 @@
   --color-critical: #ef4444;
   --color-info: #38bdf8;
 
-  /* Glass Layers */
-  --glass-bg: rgba(12, 12, 16, 0.72);
+  /* Glass Layers — opacity is driven by JS via --hud-opacity */
+  --hud-opacity: 0.72;
+  --glass-bg: rgba(12, 12, 16, var(--hud-opacity));
   --glass-border: rgba(255, 255, 255, 0.06);
   --glass-divider: rgba(255, 255, 255, 0.06);
 
   /* Text Hierarchy */
   --text-primary: rgba(255, 255, 255, 0.95);
   --text-secondary: rgba(255, 255, 255, 0.55);
-  --text-tertiary: rgba(255, 255, 255, 0.30);
+  --text-tertiary: rgba(255, 255, 255, 0.3);
 }
 
 @theme {
@@ -25,7 +26,9 @@
 }
 
 /* ── Global ── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   border-color: transparent;
 }
 
@@ -43,8 +46,11 @@ body {
 
 #root {
   background: transparent;
+  /* Width fills viewport; height is determined by content so that
+     useAutoResize can measure scrollHeight accurately and shrink
+     the window to fit. Do NOT use height:100vh — it would lock
+     scrollHeight to the viewport height and prevent resizing. */
   width: 100vw;
-  height: 100vh;
 }
 
 /* ── Drag Region ── */
@@ -57,6 +63,13 @@ body {
 
 /* ── Glass Container ── */
 .hud-glass {
+  /* var(--glass-bg) = rgba(12, 12, 16, <opacity>).
+     On Win32 WS_EX_LAYERED transparent windows, each pixel's composited
+     alpha determines hit-testing: alpha>0 → hittable, alpha=0 → click-through.
+     As long as --hud-opacity > 0 the glass area will receive mouse events.
+     IMPORTANT: CSS multi-background syntax only allows <color> in the LAST
+     layer — do NOT add a second bare color here or the rule becomes invalid
+     and the browser drops the entire declaration (→ transparent → click-through). */
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 16px;
@@ -74,4 +87,102 @@ body {
 /* ── Ring Progress ── */
 .ring-track {
   stroke: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Grid Layout ── */
+.hud-grid .react-grid-item {
+  transition: all 0.2s ease;
+}
+
+.hud-grid .react-grid-item.react-grid-placeholder {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px dashed rgba(56, 189, 248, 0.4);
+  border-radius: 10px;
+}
+
+/* ── Edit Mode ── */
+.hud-grid-edit {
+  position: relative;
+  --wails-draggable: no-drag;
+}
+
+/* All interactive children inside the grid must also block Wails drag */
+.hud-grid-edit * {
+  --wails-draggable: no-drag;
+}
+
+/* Grid overlay driven by CSS custom properties from HudGrid:
+   --grid-col-w: actual column width (px, incl. gap)
+   --grid-row-h: actual row height (px, incl. gap)              */
+.hud-grid-edit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: var(--grid-col-w, 198px) var(--grid-row-h, 48px);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: 10px;
+}
+
+.grid-item-edit {
+  position: relative;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+/* Ensure grid items clip their content */
+.hud-grid .react-grid-item {
+  overflow: hidden;
+}
+
+.widget-drag-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  cursor: grab;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px 10px 0 0;
+  transition: background 0.15s;
+}
+
+.widget-drag-handle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.widget-drag-handle:active {
+  cursor: grabbing;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* react-grid-layout resize handle */
+.hud-grid .react-grid-item > .react-resizable-handle {
+  background: none;
+}
+
+.hud-grid .react-grid-item > .react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0 0 2px 0;
+}
+
+/* ── Locked Mode ── */
+.hud-locked {
+  border-color: rgba(245, 158, 11, 0.15);
 }
