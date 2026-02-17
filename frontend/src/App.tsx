@@ -154,7 +154,29 @@ function App() {
   const handleSettingsClose = () => {
     setIsSettingsOpen(false);
     setDataMap({}); // Clear stale data
-    loadConfig();
+
+    // Reload config from backend, but preserve existing widget layouts
+    // so the grid doesn't reset positions when toggling modules or changing settings.
+    SystemService.GetConfig()
+      .then((cfg: AppConfig) => {
+        setAppConfig((prev) => {
+          if (!prev) return cfg;
+          // Merge: use new config but keep existing layout for each widget
+          const prevLayoutMap: Record<string, any> = {};
+          for (const w of prev.widgets) {
+            if (w.layout) prevLayoutMap[w.id] = w.layout;
+          }
+          const mergedWidgets = cfg.widgets.map((w) => ({
+            ...w,
+            layout: prevLayoutMap[w.id] ?? w.layout,
+          }));
+          return { ...cfg, widgets: mergedWidgets };
+        });
+        applyOpacity(cfg.opacity || 0.72);
+        setIsLocked(cfg.windowMode === "locked");
+      })
+      .catch(() => { /* silent */ });
+
     loadModules();
   };
 
