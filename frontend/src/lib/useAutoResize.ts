@@ -1,36 +1,81 @@
 import { useEffect, useRef } from "react";
 import { Window } from "@wailsio/runtime";
 
-const WINDOW_WIDTH = 400;
+const DEFAULT_WIDTH = 400;
+const OUTER_PADDING = 24; // 12px padding on each side in App.tsx
 
-export function useAutoResize() {
+/**
+ * Whether Window.Show() has been called.
+ *
+ * The HUD window starts with Hidden=true (see main.go WORKAROUND comment)
+ * to avoid flashing an oversized window at launch. We call Window.Show()
+ * exactly once, after the first successful SetSize, so the user only sees
+ * the correctly-sized HUD.
+ */
+let windowShown = false;
+
+/**
+ * Auto-resize the native window to match the content height.
+ *
+ * Width is derived from the grid column count (+ outer padding).
+ * Height is measured from the ref element's scrollHeight.
+ *
+ * Wails v3 Window.SetSize() accepts logical (CSS / DIP) pixels;
+ * it internally converts to physical pixels via DipToPhysicalRect.
+ * WebView2 runs in COREWEBVIEW2_BOUNDS_MODE_USE_RAW_PIXELS, but the
+ * DIP→physical conversion happens on the Go side, so we must NOT
+ * multiply by devicePixelRatio here.
+ */
+export function useAutoResize(gridWidth?: number) {
   const ref = useRef<HTMLDivElement>(null);
+  const widthRef = useRef(gridWidth ?? DEFAULT_WIDTH);
+
+  // Keep widthRef in sync with the latest grid width
+  widthRef.current = gridWidth ? gridWidth + OUTER_PADDING : DEFAULT_WIDTH;
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
     const sync = () => {
-      // scrollHeight captures full content including padding/children
-      const height = Math.ceil(el.scrollHeight);
-      if (height > 0) {
+      const w = widthRef.current;
+      const h = Math.ceil(el.scrollHeight);
+      if (h > 0) {
         try {
-          Window.SetSize(WINDOW_WIDTH, height);
+          Window.SetSize(w, h);
+
+          // First resize done — reveal the window (see main.go Hidden:true)
+          if (!windowShown) {
+            windowShown = true;
+            Window.Show();
+          }
         } catch {
           // Wails runtime may not be ready yet
         }
       }
     };
 
-    // Observe size changes on the container
     const observer = new ResizeObserver(() => sync());
     observer.observe(el);
-
-    // Also sync once on mount
     sync();
 
     return () => observer.disconnect();
   }, []);
+
+  // Re-sync when grid column count changes
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const w = widthRef.current;
+    const h = Math.ceil(el.scrollHeight);
+    if (h > 0) {
+      try {
+        Window.SetSize(w, h);
+      } catch {
+        // Wails runtime may not be ready yet
+      }
+    }
+  }, [gridWidth]);
 
   return ref;
 }
