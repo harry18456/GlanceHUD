@@ -44,10 +44,10 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 - [x] **效能優化**: 後端實作 **Diff Check** (`reflect.DeepEqual`)。
 - [x] **Modern Minimal UI**: Glass-morphism 設計、狀態色系、Framer Motion 動畫、內容自適應視窗大小。
 
-### Phase 3: 進階 HUD 體驗 (Advanced HUD) 📅 規劃中
+### Phase 3: 進階 HUD 體驗 (Advanced HUD) ✅ 已完成
 
-- [ ] **System Tray 整合**
-- [ ] **視窗控制**: 鎖定模式 (穿透) vs 編輯模式 (拖放佈局)。
+- [x] **System Tray 整合**
+- [x] **視窗控制**: 鎖定模式 (穿透) vs 編輯模式 (拖放佈局)。
 
 ### Phase 4: 生態系與擴充 (Ecosystem) 📅 規劃中
 
