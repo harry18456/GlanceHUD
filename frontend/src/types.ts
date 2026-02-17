@@ -59,6 +59,7 @@ export interface AppConfig {
     gridColumns: number;  // default 2
     opacity: number;      // 0.1~1.0, default 0.72
     windowMode: "normal" | "locked";
+    debugConsole?: boolean;
 }
 
 export type ConfigType = "text" | "number" | "bool" | "select" | "checkboxes" | "button";

@@ -140,6 +140,43 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
           </div>
         </label>
 
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginTop: 10,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={config.debugConsole || false}
+            onChange={(e) =>
+              setConfig({ ...config, debugConsole: e.target.checked })
+            }
+            style={{
+              width: 15,
+              height: 15,
+              accentColor: "var(--color-info)",
+            }}
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+            <span
+              style={{
+                fontSize: 12,
+                color: "var(--text-primary)",
+                fontWeight: 500,
+              }}
+            >
+              Debug Console
+            </span>
+            <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>
+              Show floating debug log
+            </span>
+          </div>
+        </label>
+
         {/* Opacity slider */}
         <div style={{ marginTop: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

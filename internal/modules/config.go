@@ -22,12 +22,13 @@ type WidgetConfig struct {
 }
 
 type AppConfig struct {
-	Widgets     []WidgetConfig `json:"widgets"`
-	Theme       string         `json:"theme"`
-	MinimalMode bool           `json:"minimalMode"`
-	GridColumns int            `json:"gridColumns"` // grid columns, default 2
-	Opacity     float64        `json:"opacity"`     // 0.1~1.0, default 0.72
-	WindowMode  string         `json:"windowMode"`  // "normal"|"locked"
+	Widgets      []WidgetConfig `json:"widgets"`
+	Theme        string         `json:"theme"`
+	MinimalMode  bool           `json:"minimalMode"`
+	GridColumns  int            `json:"gridColumns"`  // grid columns, default 2
+	Opacity      float64        `json:"opacity"`      // 0.1~1.0, default 0.72
+	WindowMode   string         `json:"windowMode"`   // "normal"|"locked"
+	DebugConsole bool           `json:"debugConsole"` // show debug console
 }
 
 type ConfigService struct {

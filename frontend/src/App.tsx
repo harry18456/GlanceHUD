@@ -556,7 +556,7 @@ function App() {
           </>
         )}
       </div>
-      <DebugConsole />
+      {appConfig?.debugConsole && <DebugConsole />}
     </div>
     </>
   );
