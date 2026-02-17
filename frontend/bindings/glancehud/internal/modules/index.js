@@ -4,5 +4,6 @@
 
 export {
     AppConfig,
-    WidgetConfig
+    WidgetConfig,
+    WidgetLayout
 } from "./models.js";

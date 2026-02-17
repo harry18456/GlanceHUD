@@ -17,7 +17,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
 
   useEffect(() => {
     // If we have a currentConfig, use it directly.
-    // If not (e.g. first load race?), try to fetch (fallback).
+    console.log("[SettingsModal] init with currentConfig:", currentConfig);
     if (currentConfig) {
       setConfig(currentConfig);
       setOriginalOpacity(currentConfig.opacity || 0.72);
@@ -54,6 +54,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
 
   const handleSave = async () => {
     if (!config) return;
+    console.log("[SettingsModal] saving config:", config);
     try {
       await SystemService.SaveConfig(config);
       onClose();

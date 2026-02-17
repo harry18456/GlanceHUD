@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"glancehud/internal/modules"
 	"glancehud/internal/protocol"
 	"reflect"
@@ -162,6 +163,43 @@ func (s *SystemService) runMonitor(m modules.Module, eventID string, stopChan ch
 			})
 		}
 	}
+}
+
+// SetWindowMode updates windowMode ("normal"|"locked") in config and emits mode:change event.
+func (s *SystemService) SetWindowMode(mode string) error {
+	if mode != "normal" && mode != "locked" {
+		return fmt.Errorf("invalid window mode: %q", mode)
+	}
+	config := s.configService.GetConfig()
+	config.WindowMode = mode
+	if err := s.configService.UpdateConfig(config); err != nil {
+		return err
+	}
+	s.app.Event.Emit("mode:change", map[string]string{"windowMode": mode})
+	return nil
+}
+
+// SetEditMode emits an edit mode toggle event to the frontend.
+func (s *SystemService) SetEditMode(enabled bool) {
+	s.app.Event.Emit("mode:change", map[string]interface{}{
+		"editMode": enabled,
+	})
+}
+
+// UpdateOpacity updates opacity in config and emits config:update event.
+func (s *SystemService) UpdateOpacity(opacity float64) error {
+	if opacity < 0.1 || opacity > 1.0 {
+		return fmt.Errorf("opacity must be between 0.1 and 1.0, got %f", opacity)
+	}
+	config := s.configService.GetConfig()
+	config.Opacity = opacity
+	if err := s.configService.UpdateConfig(config); err != nil {
+		return err
+	}
+	s.app.Event.Emit("config:update", map[string]interface{}{
+		"opacity": opacity,
+	})
+	return nil
 }
 
 // Keep GetSystemStats for backward compatibility or immediate fetch if needed

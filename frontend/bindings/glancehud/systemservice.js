@@ -78,6 +78,24 @@ export function SaveConfig(config) {
 }
 
 /**
+ * SetEditMode emits an edit mode toggle event to the frontend.
+ * @param {boolean} enabled
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetEditMode(enabled) {
+    return $Call.ByID(19265863, enabled);
+}
+
+/**
+ * SetWindowMode updates windowMode ("normal"|"locked") in config and emits mode:change event.
+ * @param {string} mode
+ * @returns {$CancellablePromise<void>}
+ */
+export function SetWindowMode(mode) {
+    return $Call.ByID(2089993183, mode);
+}
+
+/**
  * @param {application$0.App | null} app
  * @returns {$CancellablePromise<void>}
  */
@@ -90,6 +108,15 @@ export function Start(app) {
  */
 export function StartMonitoring() {
     return $Call.ByID(2618619198);
+}
+
+/**
+ * UpdateOpacity updates opacity in config and emits config:update event.
+ * @param {number} opacity
+ * @returns {$CancellablePromise<void>}
+ */
+export function UpdateOpacity(opacity) {
+    return $Call.ByID(2314449898, opacity);
 }
 
 // Private type creation functions

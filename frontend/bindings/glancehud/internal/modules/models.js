@@ -33,6 +33,30 @@ export class AppConfig {
              */
             this["minimalMode"] = false;
         }
+        if (!("gridColumns" in $$source)) {
+            /**
+             * grid columns, default 2
+             * @member
+             * @type {number}
+             */
+            this["gridColumns"] = 0;
+        }
+        if (!("opacity" in $$source)) {
+            /**
+             * 0.1~1.0, default 0.72
+             * @member
+             * @type {number}
+             */
+            this["opacity"] = 0;
+        }
+        if (!("windowMode" in $$source)) {
+            /**
+             * "normal"|"locked"
+             * @member
+             * @type {string}
+             */
+            this["windowMode"] = "";
+        }
 
         Object.assign(this, $$source);
     }
@@ -79,6 +103,13 @@ export class WidgetConfig {
              */
             this["props"] = undefined;
         }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {WidgetLayout | null | undefined}
+             */
+            this["layout"] = undefined;
+        }
 
         Object.assign(this, $$source);
     }
@@ -90,11 +121,66 @@ export class WidgetConfig {
      */
     static createFrom($$source = {}) {
         const $$createField2_0 = $$createType2;
+        const $$createField3_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("props" in $$parsedSource) {
             $$parsedSource["props"] = $$createField2_0($$parsedSource["props"]);
         }
+        if ("layout" in $$parsedSource) {
+            $$parsedSource["layout"] = $$createField3_0($$parsedSource["layout"]);
+        }
         return new WidgetConfig(/** @type {Partial<WidgetConfig>} */($$parsedSource));
+    }
+}
+
+export class WidgetLayout {
+    /**
+     * Creates a new WidgetLayout instance.
+     * @param {Partial<WidgetLayout>} [$$source = {}] - The source object to create the WidgetLayout.
+     */
+    constructor($$source = {}) {
+        if (!("x" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["x"] = 0;
+        }
+        if (!("y" in $$source)) {
+            /**
+             * @member
+             * @type {number}
+             */
+            this["y"] = 0;
+        }
+        if (!("w" in $$source)) {
+            /**
+             * grid units width
+             * @member
+             * @type {number}
+             */
+            this["w"] = 0;
+        }
+        if (!("h" in $$source)) {
+            /**
+             * grid units height
+             * @member
+             * @type {number}
+             */
+            this["h"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new WidgetLayout instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {WidgetLayout}
+     */
+    static createFrom($$source = {}) {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new WidgetLayout(/** @type {Partial<WidgetLayout>} */($$parsedSource));
     }
 }
 
@@ -102,3 +188,5 @@ export class WidgetConfig {
 const $$createType0 = WidgetConfig.createFrom;
 const $$createType1 = $Create.Array($$createType0);
 const $$createType2 = $Create.Map($Create.Any, $Create.Any);
+const $$createType3 = WidgetLayout.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);

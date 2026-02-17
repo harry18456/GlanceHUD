@@ -18,6 +18,8 @@ function applyOpacity(opacity: number) {
 }
 
 
+import { DebugConsole } from "./components/DebugConsole";
+
 function App() {
   const [modules, setModules] = useState<ModuleInfo[]>([]);
   const [dataMap, setDataMap] = useState<Record<string, DataPayload>>({});
@@ -170,6 +172,7 @@ function App() {
             ...w,
             layout: prevLayoutMap[w.id] ?? w.layout,
           }));
+          console.log("[App] Merged config widgets:", mergedWidgets);
           return { ...cfg, widgets: mergedWidgets };
         });
         applyOpacity(cfg.opacity || 0.72);
@@ -230,7 +233,9 @@ function App() {
       style={{
         display: "flex",
         flexDirection: "column",
-        padding: 12,
+        height: "auto", // allow content to determine height
+        padding: 4,
+        boxSizing: "border-box",
         color: "white",
         // Minimal alpha so Win32 WS_EX_LAYERED hit-testing registers these pixels.
         // Fully transparent (alpha=0) areas become click-through on Windows.
@@ -315,32 +320,30 @@ function App() {
               </button>
             )}
 
-            {/* Settings button */}
-            <button
-              className="no-drag"
-              onClick={() => {
-                if (isEditMode) {
-                  setIsEditMode(false);
-                }
-                setIsSettingsOpen((prev) => !prev);
-              }}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 4,
-                color: "var(--text-tertiary)",
-                display: "flex",
-                alignItems: "center",
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "var(--text-primary)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "var(--text-tertiary)";
-              }}
-            >
+              <button
+                className="no-drag"
+                disabled={isEditMode}
+                onClick={() => {
+                  setIsSettingsOpen((prev) => !prev);
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: isEditMode ? "not-allowed" : "pointer",
+                  padding: 4,
+                  opacity: isEditMode ? 0.3 : 1,
+                  color: "var(--text-tertiary)",
+                  display: "flex",
+                  alignItems: "center",
+                  transition: "color 0.2s, opacity 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isEditMode) e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isEditMode) e.currentTarget.style.color = "var(--text-tertiary)";
+                }}
+              >
               {isSettingsOpen ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -400,6 +403,7 @@ function App() {
           </>
         )}
       </div>
+      <DebugConsole />
     </div>
     </>
   );

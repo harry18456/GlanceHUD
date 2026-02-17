@@ -7,16 +7,27 @@ import (
 	"sync"
 )
 
+type WidgetLayout struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+	W int `json:"w"` // grid units width
+	H int `json:"h"` // grid units height
+}
+
 type WidgetConfig struct {
 	ID      string                 `json:"id"`
 	Enabled bool                   `json:"enabled"`
 	Props   map[string]interface{} `json:"props,omitempty"`
+	Layout  *WidgetLayout          `json:"layout,omitempty"`
 }
 
 type AppConfig struct {
 	Widgets     []WidgetConfig `json:"widgets"`
 	Theme       string         `json:"theme"`
 	MinimalMode bool           `json:"minimalMode"`
+	GridColumns int            `json:"gridColumns"` // grid columns, default 2
+	Opacity     float64        `json:"opacity"`     // 0.1~1.0, default 0.72
+	WindowMode  string         `json:"windowMode"`  // "normal"|"locked"
 }
 
 type ConfigService struct {
@@ -94,26 +105,43 @@ func (cs *ConfigService) Load() error {
 }
 
 func (cs *ConfigService) Save() error {
-	cs.mu.RLock()
-	defer cs.mu.RUnlock()
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	return cs.saveLocked()
+}
 
+// saveLocked writes config to disk. Caller must hold cs.mu write lock.
+func (cs *ConfigService) saveLocked() error {
 	data, err := json.MarshalIndent(cs.Config, "", "  ")
 	if err != nil {
 		return err
 	}
-
 	return os.WriteFile(cs.configPath, data, 0644)
 }
 
 func (cs *ConfigService) GetConfig() AppConfig {
 	cs.mu.RLock()
 	defer cs.mu.RUnlock()
-	return cs.Config
+	return cs.withDefaults(cs.Config)
+}
+
+// withDefaults returns a copy with zero-value fields replaced by defaults.
+func (cs *ConfigService) withDefaults(cfg AppConfig) AppConfig {
+	if cfg.GridColumns <= 0 || cfg.GridColumns > 6 {
+		cfg.GridColumns = 2
+	}
+	if cfg.Opacity <= 0 {
+		cfg.Opacity = 0.72
+	}
+	if cfg.WindowMode == "" {
+		cfg.WindowMode = "normal"
+	}
+	return cfg
 }
 
 func (cs *ConfigService) UpdateConfig(newConfig AppConfig) error {
 	cs.mu.Lock()
+	defer cs.mu.Unlock()
 	cs.Config = newConfig
-	cs.mu.Unlock()
-	return cs.Save()
+	return cs.saveLocked()
 }

@@ -54,9 +54,11 @@ func (s *APIService) handleWidgetPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Emit event to Frontend
-	// Event Name: "widget:update"
-	s.app.Event.Emit("widget:update", req)
+	// Emit event to Frontend using UpdateEvent format (matches stats:update shape)
+	s.app.Event.Emit("widget:update", protocol.UpdateEvent{
+		ID:   req.ModuleID,
+		Data: req.Data,
+	})
 
 	fmt.Printf("[API] Pushed data for %s\n", req.ModuleID)
 	w.WriteHeader(http.StatusOK)

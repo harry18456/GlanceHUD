@@ -39,7 +39,8 @@ export function useAutoResize(gridWidth?: number) {
 
     const sync = () => {
       const w = widthRef.current;
-      const h = Math.ceil(el.scrollHeight);
+      const dpr = window.devicePixelRatio || 1;
+      const h = Math.ceil(el.scrollHeight * dpr); // Restore scaling
       if (h > 0) {
         try {
           Window.SetSize(w, h);
@@ -49,7 +50,8 @@ export function useAutoResize(gridWidth?: number) {
             windowShown = true;
             Window.Show();
           }
-        } catch {
+        } catch (err: unknown) {
+          console.error("[Resize] SetSize failed:", err);
           // Wails runtime may not be ready yet
         }
       }
