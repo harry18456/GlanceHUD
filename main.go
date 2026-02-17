@@ -140,32 +140,19 @@ func setupSystemTray(app *application.App, hudWindow application.Window, systemS
 
 	menu.AddSeparator()
 
-	// Lock mode (click-through) and Edit mode — declare both first for cross-references
+	// Lock mode (click-through)
 	lockItem := menu.AddCheckbox("Lock Mode", config.WindowMode == "locked")
-	editItem := menu.AddCheckbox("Edit Mode", false)
 
 	lockItem.OnClick(func(ctx *application.Context) {
 		locked := ctx.ClickedMenuItem().Checked()
 		hudWindow.SetIgnoreMouseEvents(locked)
 		mode := "normal"
 		if locked {
-			// Exit edit mode when locking
+			// Exit edit mode when locking (just in case)
 			systemService.SetEditMode(false)
-			editItem.SetChecked(false)
 			mode = "locked"
 		}
 		_ = systemService.SetWindowMode(mode)
-	})
-
-	editItem.OnClick(func(ctx *application.Context) {
-		editing := ctx.ClickedMenuItem().Checked()
-		if editing {
-			// Ensure not in lock mode
-			lockItem.SetChecked(false)
-			hudWindow.SetIgnoreMouseEvents(false)
-			_ = systemService.SetWindowMode("normal")
-		}
-		systemService.SetEditMode(editing)
 	})
 
 	menu.AddSeparator()
@@ -200,12 +187,6 @@ func setupSystemTray(app *application.App, hudWindow application.Window, systemS
 	}
 
 	menu.AddSeparator()
-
-	// Settings
-	menu.Add("Settings").OnClick(func(ctx *application.Context) {
-		hudWindow.Show()
-		app.Event.Emit("open:settings", nil)
-	})
 
 	// Quit
 	menu.Add("Quit").OnClick(func(ctx *application.Context) {
