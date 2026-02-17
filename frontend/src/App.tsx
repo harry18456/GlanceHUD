@@ -361,6 +361,7 @@ function App() {
           <SettingsModal
             onClose={handleSettingsClose}
             modules={modules}
+            currentConfig={appConfig}
           />
         ) : (
           <>

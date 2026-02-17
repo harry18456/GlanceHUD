@@ -6,22 +6,37 @@ import { DynamicForm } from "./DynamicForm";
 interface Props {
   onClose: () => void;
   modules: ModuleInfo[];
+  currentConfig: AppConfig | null;
 }
 
-export const SettingsModal: React.FC<Props> = ({ onClose, modules }) => {
-  const [config, setConfig] = useState<AppConfig | null>(null);
+export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig }) => {
+  const [config, setConfig] = useState<AppConfig | null>(currentConfig);
+  const [originalOpacity, setOriginalOpacity] = useState<number>(currentConfig?.opacity || 0.72);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [schemas, setSchemas] = useState<Record<string, ConfigSchema[]>>({});
 
   useEffect(() => {
-    loadConfig();
-  }, []);
+    // If we have a currentConfig, use it directly.
+    // If not (e.g. first load race?), try to fetch (fallback).
+    if (currentConfig) {
+      setConfig(currentConfig);
+      setOriginalOpacity(currentConfig.opacity || 0.72);
+    } else {
+      loadingFallback();
+    }
+    loadSchemas();
+  }, [currentConfig]);
 
-  const loadConfig = async () => {
+  const loadingFallback = async () => {
     try {
       const cfg = await SystemService.GetConfig();
       setConfig(cfg);
+      setOriginalOpacity(cfg.opacity || 0.72);
+    } catch (_) { /* silent */ }
+  };
 
+  const loadSchemas = async () => {
+    try {
       const schemasMap: Record<string, ConfigSchema[]> = {};
       for (const mod of modules) {
         const schema = await SystemService.GetModuleConfigSchema(mod.moduleId);
@@ -34,9 +49,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules }) => {
       if (modules.length > 0 && !selectedModuleId) {
         setSelectedModuleId(modules[0].moduleId);
       }
-    } catch (_) {
-      // silent
-    }
+    } catch (_) { /* silent */ }
   };
 
   const handleSave = async () => {
@@ -125,6 +138,71 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules }) => {
             </span>
           </div>
         </label>
+
+        {/* Opacity slider */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>
+              透明度
+            </span>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+              {Math.round((config.opacity || 0.72) * 100)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min={10}
+            max={100}
+            step={5}
+            value={Math.round((config.opacity || 0.72) * 100)}
+            onChange={(e) => {
+              const opacity = parseInt(e.target.value, 10) / 100;
+              setConfig({ ...config, opacity });
+              // Live preview
+              document.documentElement.style.setProperty("--hud-opacity", String(opacity));
+            }}
+            style={{
+              width: "100%",
+              marginTop: 6,
+              accentColor: "var(--color-info)",
+              height: 4,
+            }}
+          />
+        </div>
+
+        {/* Grid columns */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>
+              格線欄數
+            </span>
+            <span style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+              {config.gridColumns || 2}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+            {[1, 2, 3, 4].map((cols) => (
+              <button
+                key={cols}
+                onClick={() => setConfig({ ...config, gridColumns: cols })}
+                style={{
+                  flex: 1,
+                  padding: "4px 0",
+                  fontSize: 11,
+                  fontWeight: (config.gridColumns || 2) === cols ? 600 : 400,
+                  background: (config.gridColumns || 2) === cols ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
+                  border: (config.gridColumns || 2) === cols ? "1px solid var(--color-info)" : "1px solid var(--glass-border)",
+                  borderRadius: 6,
+                  color: (config.gridColumns || 2) === cols ? "var(--text-primary)" : "var(--text-secondary)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                {cols}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div
@@ -247,7 +325,11 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules }) => {
         }}
       >
         <button
-          onClick={onClose}
+          onClick={() => {
+            // Revert live opacity preview on cancel
+            document.documentElement.style.setProperty("--hud-opacity", String(originalOpacity));
+            onClose();
+          }}
           style={{
             background: "rgba(255,255,255,0.06)",
             border: "1px solid var(--glass-border)",
