@@ -378,6 +378,33 @@ func (s *SystemService) GetSystemStats() (any, error) {
 	return nil, nil
 }
 
+// GetStats returns a snapshot of all active widgets, optionally filtered by render ID.
+// filterID may be a full render ID (e.g. "glancehud.core.cpu" or "gpu.0") or empty for all.
+func (s *SystemService) GetStats(filterID string) protocol.StatsResponse {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	widgets := make(map[string]protocol.StatEntry, len(s.sources))
+	for _, src := range s.sources {
+		cfg := src.GetRenderConfig()
+		renderID := cfg.ID
+		if filterID != "" && renderID != filterID {
+			continue
+		}
+		entry := protocol.StatEntry{
+			ID:    renderID,
+			Type:  cfg.Type,
+			Title: cfg.Title,
+			Data:  s.cache[renderID],
+		}
+		if sc, ok := src.(*SidecarSource); ok {
+			entry.IsOffline = sc.isOffline
+		}
+		widgets[renderID] = entry
+	}
+	return protocol.StatsResponse{Widgets: widgets}
+}
+
 // GetCurrentData returns the last cached data for all active modules.
 func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error) {
 	s.mu.RLock()

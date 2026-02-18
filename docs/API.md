@@ -74,9 +74,56 @@ GlanceHUD 內建一個輕量級的 HTTP Server，用於接收外部程式 (Sidec
 
 ---
 
-### 2.2 獲取統計資訊 (未實作)
+### 2.2 獲取統計資訊
 
-預計用於獲取當前所有模組的狀態快照。
+返回當前所有 Widget 的資料快照，適合 Home Assistant、Stream Deck、或任何需要「讀取」而非「推送」的外部整合。
 
 - **URL**: `GET /api/stats`
-- **狀態**: `501 Not Implemented` (尚未實作)
+- **Query Params**: `id` (Optional) — 過濾特定 Widget 的 Render ID (e.g. `?id=glancehud.core.cpu`)
+
+#### 回應格式 (Response Body)
+
+```json
+{
+  "widgets": {
+    "glancehud.core.cpu": {
+      "id": "glancehud.core.cpu",
+      "type": "sparkline",
+      "title": "CPU",
+      "data": { "value": 42.1 }
+    },
+    "glancehud.core.mem": {
+      "id": "glancehud.core.mem",
+      "type": "gauge",
+      "title": "Memory",
+      "data": { "value": 67.3 }
+    },
+    "gpu.0": {
+      "id": "gpu.0",
+      "type": "sparkline",
+      "title": "RTX 4090 Core",
+      "data": { "value": 88.0 },
+      "is_offline": false
+    }
+  }
+}
+```
+
+- **欄位說明**:
+  - `widgets` (Object): 以 Widget Render ID 為 Key 的快照 Map。
+  - `data` (Object | null): 最後一次收到的 `DataPayload`。尚未收到任何資料時為 `null`。
+  - `is_offline` (Boolean, 省略表示 false): 僅出現在 Sidecar Widget。`true` 表示超過 10 秒未收到推送。
+
+- **回應碼**:
+  - **200 OK**: 永遠回傳，即使沒有任何 Widget（返回空 `widgets: {}`）。
+  - **405 Method Not Allowed**: 使用了非 GET 方法。
+
+#### 使用範例
+
+```bash
+# 取得所有 Widget 快照
+curl http://localhost:9090/api/stats
+
+# 只取 CPU 資料
+curl "http://localhost:9090/api/stats?id=glancehud.core.cpu"
+```

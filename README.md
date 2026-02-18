@@ -60,7 +60,7 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 - [x] **Sidecar 範例**:
   - `examples/python-sidecar.py` — 涵蓋全部 5 種 Widget 類型，並展示 Settings 雙向互動。
   - `examples/gpu-monitor.py` — 真實 NVIDIA GPU 監控 (取代 gpustat/nvitop)，支援多 GPU，含核心使用率趨勢、VRAM/溫度/功耗/風扇、Top Processes。
-- [ ] **狀態查詢 (Pull)**: 開放 `GET /api/stats`，允許外部裝置 (如 Home Assistant, Stream Deck) 讀取當前系統監控數據。
+- [x] **狀態查詢 (Pull)**: `GET /api/stats` 返回所有 Widget 的資料快照；支援 `?id=` 過濾；供 Home Assistant、Stream Deck 等外部裝置讀取。
 
 ### Phase 5: 品質與規範 (Quality Assurance) 📅 規劃中
 

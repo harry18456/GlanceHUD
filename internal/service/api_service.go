@@ -77,6 +77,16 @@ func (s *APIService) handleWidgetPush(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *APIService) handleStatsPull(w http.ResponseWriter, r *http.Request) {
-	// Phase 4: Implementation later
-	w.WriteHeader(http.StatusNotImplemented)
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	filterID := r.URL.Query().Get("id")
+	resp := s.systemService.GetStats(filterID)
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		fmt.Printf("[APIService] Failed to encode stats response: %v\n", err)
+	}
 }

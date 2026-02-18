@@ -107,3 +107,17 @@ type SidecarResponse struct {
 	Status string         `json:"status"`
 	Props  map[string]any `json:"props,omitempty"`
 }
+
+// StatEntry 是單一 widget 的當前狀態快照，用於 GET /api/stats
+type StatEntry struct {
+	ID        string        `json:"id"`
+	Type      ComponentType `json:"type"`
+	Title     string        `json:"title"`
+	Data      *DataPayload  `json:"data"`
+	IsOffline bool          `json:"is_offline,omitempty"`
+}
+
+// StatsResponse 是 GET /api/stats 的回應結構
+type StatsResponse struct {
+	Widgets map[string]StatEntry `json:"widgets"`
+}
