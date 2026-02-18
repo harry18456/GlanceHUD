@@ -8,5 +8,7 @@ export {
     ConfigType,
     DataPayload,
     RenderConfig,
-    SelectOption
+    SelectOption,
+    StatEntry,
+    StatsResponse
 } from "./models.js";

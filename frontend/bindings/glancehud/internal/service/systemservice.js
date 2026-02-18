@@ -30,7 +30,7 @@ export function GetConfig() {
 }
 
 /**
- * GetCurrentData returns the last cached data for all active modules
+ * GetCurrentData returns the last cached data for all active modules.
  * @returns {$CancellablePromise<{ [_ in string]?: protocol$0.DataPayload }>}
  */
 export function GetCurrentData() {
@@ -62,7 +62,19 @@ export function GetModules() {
 }
 
 /**
- * Keep GetSystemStats for backward compatibility or immediate fetch if needed
+ * GetStats returns a snapshot of all active widgets, optionally filtered by render ID.
+ * filterID may be a full render ID (e.g. "glancehud.core.cpu" or "gpu.0") or empty for all.
+ * @param {string} filterID
+ * @returns {$CancellablePromise<protocol$0.StatsResponse>}
+ */
+export function GetStats(filterID) {
+    return $Call.ByID(1200192349, filterID).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType7($result);
+    }));
+}
+
+/**
+ * GetSystemStats kept for backward compatibility.
  * @returns {$CancellablePromise<any>}
  */
 export function GetSystemStats() {
@@ -70,15 +82,16 @@ export function GetSystemStats() {
 }
 
 /**
- * RegisterSidecar handles lazy registration.
- * If config is provided (template), it updates the sidecar definition.
- * If it's a new sidecar, it also adds it to the persistent config (enabled by default).
+ * RegisterSidecar handles lazy registration of sidecar widgets.
+ * Native modules take precedence: if a native module with the same ID already
+ * exists, this call is silently ignored.
  * @param {string} id
  * @param {protocol$0.RenderConfig | null} config
+ * @param {protocol$0.ConfigSchema[]} schema
  * @returns {$CancellablePromise<void>}
  */
-export function RegisterSidecar(id, config) {
-    return $Call.ByID(1279511238, id, config);
+export function RegisterSidecar(id, config, schema) {
+    return $Call.ByID(1279511238, id, config, schema);
 }
 
 /**
@@ -132,13 +145,16 @@ export function UpdateOpacity(opacity) {
 }
 
 /**
- * UpdateSidecarData updates data for a sidecar module
+ * UpdateSidecarData updates data for a sidecar source and returns the current
+ * merged props (so the sidecar can read back settings set by the user).
  * @param {string} id
  * @param {protocol$0.DataPayload | null} data
- * @returns {$CancellablePromise<void>}
+ * @returns {$CancellablePromise<{ [_ in string]?: any }>}
  */
 export function UpdateSidecarData(id, data) {
-    return $Call.ByID(1950429558, id, data);
+    return $Call.ByID(1950429558, id, data).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType8($result);
+    }));
 }
 
 // Private type creation functions
@@ -149,3 +165,5 @@ const $$createType3 = protocol$0.ConfigSchema.createFrom;
 const $$createType4 = $Create.Array($$createType3);
 const $$createType5 = $models.ModuleInfo.createFrom;
 const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = protocol$0.StatsResponse.createFrom;
+const $$createType8 = $Create.Map($Create.Any, $Create.Any);

@@ -280,7 +280,109 @@ export class SelectOption {
     }
 }
 
+/**
+ * StatEntry 是單一 widget 的當前狀態快照，用於 GET /api/stats
+ */
+export class StatEntry {
+    /**
+     * Creates a new StatEntry instance.
+     * @param {Partial<StatEntry>} [$$source = {}] - The source object to create the StatEntry.
+     */
+    constructor($$source = {}) {
+        if (!("id" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["id"] = "";
+        }
+        if (!("type" in $$source)) {
+            /**
+             * @member
+             * @type {ComponentType}
+             */
+            this["type"] = ComponentType.$zero;
+        }
+        if (!("title" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["title"] = "";
+        }
+        if (!("data" in $$source)) {
+            /**
+             * @member
+             * @type {DataPayload | null}
+             */
+            this["data"] = null;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * @member
+             * @type {boolean | undefined}
+             */
+            this["is_offline"] = undefined;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StatEntry instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {StatEntry}
+     */
+    static createFrom($$source = {}) {
+        const $$createField3_0 = $$createType4;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("data" in $$parsedSource) {
+            $$parsedSource["data"] = $$createField3_0($$parsedSource["data"]);
+        }
+        return new StatEntry(/** @type {Partial<StatEntry>} */($$parsedSource));
+    }
+}
+
+/**
+ * StatsResponse 是 GET /api/stats 的回應結構
+ */
+export class StatsResponse {
+    /**
+     * Creates a new StatsResponse instance.
+     * @param {Partial<StatsResponse>} [$$source = {}] - The source object to create the StatsResponse.
+     */
+    constructor($$source = {}) {
+        if (!("widgets" in $$source)) {
+            /**
+             * @member
+             * @type {{ [_ in string]?: StatEntry }}
+             */
+            this["widgets"] = {};
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StatsResponse instance from a string or object.
+     * @param {any} [$$source = {}]
+     * @returns {StatsResponse}
+     */
+    static createFrom($$source = {}) {
+        const $$createField0_0 = $$createType6;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("widgets" in $$parsedSource) {
+            $$parsedSource["widgets"] = $$createField0_0($$parsedSource["widgets"]);
+        }
+        return new StatsResponse(/** @type {Partial<StatsResponse>} */($$parsedSource));
+    }
+}
+
 // Private type creation functions
 const $$createType0 = SelectOption.createFrom;
 const $$createType1 = $Create.Array($$createType0);
 const $$createType2 = $Create.Map($Create.Any, $Create.Any);
+const $$createType3 = DataPayload.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = StatEntry.createFrom;
+const $$createType6 = $Create.Map($Create.Any, $$createType5);

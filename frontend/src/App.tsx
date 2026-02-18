@@ -18,7 +18,7 @@ function applyOpacity(opacity: number) {
 }
 
 
-import { DebugConsole } from "./components/DebugConsole";
+import { DebugConsole, debugLog } from "./components/DebugConsole";
 
 /** Helper: Calculate bounding box origin for enabled widgets */
 function getLayoutOrigin(widgets: WidgetConfig[]): { x: number, y: number } {
@@ -98,7 +98,7 @@ function App() {
     );
     if (!isOldFormat) return cfg;
 
-    console.log("[App] Migrating old grid layouts to new fine grid units");
+    debugLog("WARN", "Layout", "Old grid format detected — migrating to fine grid units");
     const migratedWidgets = cfg.widgets.map(w => {
       if (!w.layout) return w;
       return {
@@ -123,6 +123,7 @@ function App() {
       setAppConfig(cfg);
       applyOpacity(cfg.opacity || 0.72);
       setIsLocked(cfg.windowMode === "locked");
+      debugLog("INFO", "Config", `Loaded — ${cfg.widgets.length} widgets, opacity=${(cfg.opacity || 0.72).toFixed(2)}, mode=${cfg.windowMode || "normal"}`);
       
       // Calculate initial columns based on enabled widgets only (Virtual Origin)
       const origin = getLayoutOrigin(cfg.widgets);
@@ -146,6 +147,7 @@ function App() {
   }, [migrateLayouts]);
 
   useEffect(() => {
+    debugLog("INFO", "App", `GlanceHUD v${packageJson.version} initialized`);
     loadConfig();
     loadModules();
 
@@ -154,6 +156,17 @@ function App() {
         Array.isArray(event.data) ? event.data[0] : event.data
       ) as UpdateEvent;
       if (payload && payload.id) {
+        // Track offline state transitions
+        const wasOffline = offlineStateRef.current[payload.id] ?? false;
+        const isNowOffline = payload.data?.props?.isOffline === true;
+        if (!wasOffline && isNowOffline) {
+          debugLog("WARN", "Sidecar", `${payload.id} → OFFLINE`);
+          offlineStateRef.current[payload.id] = true;
+        } else if (wasOffline && !isNowOffline) {
+          debugLog("INFO", "Sidecar", `${payload.id} → ONLINE`);
+          delete offlineStateRef.current[payload.id];
+        }
+
         setDataMap((prev) => ({
           ...prev,
           [payload.id]: payload.data,
@@ -187,6 +200,7 @@ function App() {
     const unsubMode = Events.On("mode:change", (event: any) => {
       const data = Array.isArray(event.data) ? event.data[0] : event.data;
       if (data?.windowMode != null) {
+        debugLog("EVT", "Mode", `Window → ${data.windowMode}`);
         setIsLocked(data.windowMode === "locked");
         if (data.windowMode === "locked") {
           setIsEditMode(false);
@@ -194,6 +208,7 @@ function App() {
         }
       }
       if (data?.editMode != null) {
+        debugLog("EVT", "Mode", `Edit mode → ${data.editMode ? "ON" : "OFF"}`);
         setIsEditMode(data.editMode);
         if (data.editMode) {
           setIsLocked(false);
@@ -209,7 +224,7 @@ function App() {
 
     // Reload config/modules on backend request (e.g. new sidecar detected)
     const unsubReload = Events.On("config:reload", () => {
-      console.log("[App] Config reload requested");
+      debugLog("EVT", "Backend", "config:reload — refreshing modules");
       loadConfig();
       loadModules();
     });
@@ -232,6 +247,21 @@ function App() {
           config: i.config,
           enabled: i.enabled ?? true,
         }));
+
+        if (isInitialLoadRef.current) {
+          debugLog("INFO", "Modules", `Loaded — ${parsed.length} total, ${parsed.filter(m => m.enabled).length} enabled`);
+          isInitialLoadRef.current = false;
+          parsed.forEach(m => knownModuleIdsRef.current.add(m.moduleId));
+        } else {
+          // Detect newly registered sidecar widgets
+          parsed.forEach(m => {
+            if (!knownModuleIdsRef.current.has(m.moduleId)) {
+              debugLog("EVT", "Sidecar", `New widget registered: ${m.moduleId}`);
+              knownModuleIdsRef.current.add(m.moduleId);
+            }
+          });
+        }
+
         setModules(parsed);
         return SystemService.GetCurrentData();
       })
@@ -324,6 +354,11 @@ function App() {
   const pendingLayoutsRef = useRef(pendingLayouts);
   pendingLayoutsRef.current = pendingLayouts;
 
+  // Debug tracking refs (never trigger re-renders)
+  const offlineStateRef   = useRef<Record<string, boolean>>({});   // widget offline state transitions
+  const knownModuleIdsRef = useRef<Set<string>>(new Set());        // detect new sidecar registrations
+  const isInitialLoadRef  = useRef(true);                          // suppress "new widget" on first load
+
   // Save layout when exiting edit mode
   useEffect(() => {
     const layouts = pendingLayoutsRef.current;
@@ -351,9 +386,9 @@ function App() {
       // We don't need to save gridColumns anymore as it is derived
       const newConfig = { ...config, widgets: newWidgets };
       setAppConfig(newConfig);
-      SystemService.SaveConfig(newConfig).catch((err: unknown) => {
-        console.error("Failed to save layout config:", err);
-      });
+      SystemService.SaveConfig(newConfig)
+        .then(() => debugLog("INFO", "Layout", `Saved — ${newWidgets.filter(w => w.layout).length} widgets`))
+        .catch((err: unknown) => console.error("Failed to save layout config:", err));
       setPendingLayouts(null);
 
       // Recalculate maxContentCols after normalization

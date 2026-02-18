@@ -73,13 +73,12 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 - [ ] **Windows Support**:
   - [ ] Windows 11 (x64)
   - [ ] Windows on ARM (e.g. Surface Pro 9/11)
+- [ ] **Linux Support**:
+  - [ ] Ubuntu (x64)
+  - [ ] Debian (ARM64)
 - [ ] **macOS Support**:
   - [ ] macOS (Intel)
   - [ ] macOS (Apple Silicon M-Series)
-- [ ] **Linux Support**:
-  - [ ] Ubuntu (x64)
-  - [ ] Arch Linux
-  - [ ] Raspberry Pi OS (ARM64)
 
 ---
 
