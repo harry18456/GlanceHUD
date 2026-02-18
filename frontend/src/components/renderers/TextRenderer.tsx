@@ -17,6 +17,8 @@ export const TextRenderer: React.FC<Props> = ({ config, data, containerWidth, co
   const rawValue = data?.value;
   const label = data?.label || config.title;
   const items = data?.items as Array<{ key: string; value: string }>;
+  const unit = config.props?.unit as string | undefined;
+  const valueColor = (config.props?.color as string) || "var(--text-primary)";
 
   // Scale factor
   const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1;
@@ -58,11 +60,11 @@ export const TextRenderer: React.FC<Props> = ({ config, data, containerWidth, co
             fontSize: valueFontSize,
             fontWeight: 700,
             fontFamily: "var(--font-mono)",
-            color: "var(--text-primary)",
+            color: valueColor,
           }}
         >
           {typeof rawValue === "number" ? (
-            <AnimatedNumber value={rawValue} decimals={1} />
+            <AnimatedNumber value={rawValue} decimals={1} suffix={unit} />
           ) : (
             rawValue ?? "-"
           )}

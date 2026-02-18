@@ -18,6 +18,7 @@ export const BarListRenderer: React.FC<Props> = ({ config, data, containerWidth,
   const items = Array.isArray(data?.items)
     ? (data.items as Array<{ label: string; percent: number; value: string }>)
     : [];
+  const fixedColor = config.props?.color as string | undefined;
 
   // Scale factor
   const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1;
@@ -100,7 +101,7 @@ export const BarListRenderer: React.FC<Props> = ({ config, data, containerWidth,
                 style={{
                   height: "100%",
                   borderRadius: barHeight / 2,
-                  background: statusColor(item.percent),
+                  background: fixedColor ?? statusColor(item.percent),
                 }}
               />
             </div>

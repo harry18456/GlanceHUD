@@ -17,6 +17,7 @@ interface Props {
 export const KVRenderer: React.FC<Props> = ({ config, data, containerWidth, containerHeight }) => {
   const items = Array.isArray(data?.items) ? (data.items as KeyValueItem[]) : [];
   const isRow = config.props?.layout === "row";
+  const iconColor = (config.props?.color as string) || "var(--color-info)";
 
   // Scale factor
   const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1;
@@ -86,7 +87,7 @@ export const KVRenderer: React.FC<Props> = ({ config, data, containerWidth, cont
             >
               {/* Icon */}
               {item.icon && (
-                <span style={{ color: "var(--color-info)", flexShrink: 0 }}>
+                <span style={{ color: iconColor, flexShrink: 0 }}>
                   <IconFromName name={item.icon} size={iconSize} />
                 </span>
               )}

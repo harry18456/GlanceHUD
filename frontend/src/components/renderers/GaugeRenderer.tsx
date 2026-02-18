@@ -18,7 +18,7 @@ interface Props {
 export const GaugeRenderer: React.FC<Props> = ({ config, data, containerWidth, containerHeight }) => {
   const value = typeof data?.value === "number" ? data.value : 0;
   const unit = (config.props?.unit as string) || "%";
-  const color = statusColorHex(value);
+  const color = (config.props?.color as string) || statusColorHex(value);
 
   // Scale factor based on container size relative to base
   const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1;
