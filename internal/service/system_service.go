@@ -5,6 +5,8 @@ import (
 	"glancehud/internal/modules"
 	"glancehud/internal/protocol"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"time"
@@ -33,7 +35,7 @@ func NewSystemService() *SystemService {
 		"net":  modules.NewNetModule(),
 	}
 
-	configDir := "."
+	configDir := resolveConfigDir()
 	cs, _ := modules.NewConfigService(configDir, mods)
 
 	sources := make(map[string]WidgetSource, len(mods))
@@ -625,4 +627,23 @@ func (s *SystemService) RemoveSidecar(id string) error {
 	}
 
 	return nil
+}
+
+// resolveConfigDir returns the OS-appropriate user config directory for GlanceHUD.
+// Falls back to "." (current directory) if the OS config dir cannot be determined.
+//
+// Resolved paths:
+//   - Windows: %APPDATA%\GlanceHUD
+//   - macOS:   ~/Library/Application Support/GlanceHUD
+//   - Linux:   ~/.config/GlanceHUD
+func resolveConfigDir() string {
+	base, err := os.UserConfigDir()
+	if err != nil {
+		return "."
+	}
+	dir := filepath.Join(base, "GlanceHUD")
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return "."
+	}
+	return dir
 }
