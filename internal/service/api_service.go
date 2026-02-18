@@ -59,7 +59,7 @@ func (s *APIService) handleWidgetPush(w http.ResponseWriter, r *http.Request) {
 
 	// Lazy Registration / Ensure Existence
 	// This creates the module in RAM if missing, and updates config if Template is provided
-	s.systemService.RegisterSidecar(req.ModuleID, req.Template)
+	s.systemService.RegisterSidecar(req.ModuleID, req.Template, nil)
 
 	// Update Data
 	if req.Data != nil {

@@ -14,19 +14,10 @@ import (
 type SystemService struct {
 	app           *application.App
 	configService *modules.ConfigService
-	modules       map[string]modules.Module // immutable after init
+	sources       map[string]WidgetSource // unified: native modules + sidecars
 	stopChans     map[string]chan struct{}
 	cache         map[string]*protocol.DataPayload
-	sidecars      map[string]*SidecarModule
 	mu            sync.RWMutex
-}
-
-type SidecarModule struct {
-	ID          string
-	Config      protocol.RenderConfig
-	LastSeen    time.Time
-	IsOffline   bool
-	CurrentData *protocol.DataPayload
 }
 
 func NewSystemService() *SystemService {
@@ -40,15 +31,18 @@ func NewSystemService() *SystemService {
 	configDir := "."
 	cs, _ := modules.NewConfigService(configDir, mods)
 
-	s := &SystemService{
-		configService: cs,
-		modules:       mods,
-		stopChans:     make(map[string]chan struct{}),
-		cache:         make(map[string]*protocol.DataPayload),
-		sidecars:      make(map[string]*SidecarModule),
+	sources := make(map[string]WidgetSource, len(mods))
+	for id, mod := range mods {
+		sources[id] = mod
 	}
 
-	// Start TTL checker
+	s := &SystemService{
+		configService: cs,
+		sources:       sources,
+		stopChans:     make(map[string]chan struct{}),
+		cache:         make(map[string]*protocol.DataPayload),
+	}
+
 	go s.runTTLChecker()
 
 	return s
@@ -59,37 +53,43 @@ func (s *SystemService) Start(app *application.App) {
 	s.StartMonitoring()
 }
 
-// RegisterSidecar handles lazy registration.
-// If config is provided (template), it updates the sidecar definition.
-// If it's a new sidecar, it also adds it to the persistent config (enabled by default).
-func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig) {
+// RegisterSidecar handles lazy registration of sidecar widgets.
+// Native modules take precedence: if a native module with the same ID already
+// exists, this call is silently ignored.
+func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig, schema []protocol.ConfigSchema) {
 	s.mu.Lock()
 
-	sidecar, exists := s.sidecars[id]
-	if !exists {
-		sidecar = &SidecarModule{
-			ID:       id,
-			LastSeen: time.Now(),
+	// Native module wins – do not overwrite
+	if _, isNative := s.sources[id].(modules.Module); isNative {
+		s.mu.Unlock()
+		return
+	}
+
+	existing, exists := s.sources[id]
+	var sc *SidecarSource
+	if exists {
+		sc = existing.(*SidecarSource)
+	} else {
+		sc = &SidecarSource{
+			id:       id,
+			lastSeen: time.Now(),
 		}
-		s.sidecars[id] = sidecar
+		s.sources[id] = sc
 	}
 
 	if config != nil {
-		sidecar.Config = *config
-		sidecar.Config.ID = id
+		sc.updateTemplate(*config, schema)
+	} else if schema != nil {
+		sc.schema = schema
 	}
 
-	sidecar.LastSeen = time.Now()
-	sidecar.IsOffline = false
+	sc.markSeen()
 	s.mu.Unlock()
 
-	// If this sidecar was just added to runtime memory (new sidecar connection for this session),
-	// we must notify frontend to reload modules list, even if it was already in config.json.
 	if !exists && s.app != nil {
 		s.app.Event.Emit("config:reload", nil)
 	}
 
-	// Persist to Config if new (async to avoid deadlock with SaveConfig -> StartMonitoring -> Lock)
 	if config != nil && !exists {
 		go s.ensureSidecarInConfig(id, *config)
 	}
@@ -97,55 +97,55 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 
 func (s *SystemService) ensureSidecarInConfig(id string, tmpl protocol.RenderConfig) {
 	appConfig := s.configService.GetConfig()
-	found := false
 	for _, w := range appConfig.Widgets {
 		if w.ID == id {
-			found = true
-			break
+			return
 		}
 	}
 
-	if !found {
-		// Add new widget config
-		newWidget := modules.WidgetConfig{
-			ID:      id,
-			Enabled: true,
-			Props:   tmpl.Props, // Use default props from template
-		}
-		// We append it to the end
-		appConfig.Widgets = append(appConfig.Widgets, newWidget)
-
-		// SaveConfig triggers StartMonitoring, which is fine
-		_ = s.SaveConfig(appConfig)
-		fmt.Printf("[Detected New Sidecar] Added %s to config\n", id)
+	newWidget := modules.WidgetConfig{
+		ID:      id,
+		Enabled: true,
+		Props:   tmpl.Props,
 	}
+	appConfig.Widgets = append(appConfig.Widgets, newWidget)
+
+	_ = s.SaveConfig(appConfig)
+	fmt.Printf("[Detected New Sidecar] Added %s to config\n", id)
 }
 
-// UpdateSidecarData updates data for a sidecar module
-func (s *SystemService) UpdateSidecarData(id string, data *protocol.DataPayload) {
+// UpdateSidecarData updates data for a sidecar source and returns the current
+// merged props (so the sidecar can read back settings set by the user).
+func (s *SystemService) UpdateSidecarData(id string, data *protocol.DataPayload) map[string]interface{} {
 	s.mu.Lock()
 
-	sidecar, exists := s.sidecars[id]
+	src, exists := s.sources[id]
 	if !exists {
 		s.mu.Unlock()
-		return // Should be registered first via RegisterSidecar (lazy pattern mandates it)
+		return nil
 	}
 
-	sidecar.LastSeen = time.Now()
-	sidecar.IsOffline = false
-	sidecar.CurrentData = data
+	sc, ok := src.(*SidecarSource)
+	if !ok {
+		s.mu.Unlock()
+		return nil
+	}
 
-	// Update cache
+	sc.markSeen()
+	sc.currentData = data
 	s.cache[id] = data
+
+	props := sc.currentProps
 	s.mu.Unlock()
 
-	// Emit event
 	if s.app != nil {
 		s.app.Event.Emit("stats:update", protocol.UpdateEvent{
 			ID:   id,
 			Data: data,
 		})
 	}
+
+	return props
 }
 
 func (s *SystemService) runTTLChecker() {
@@ -162,28 +162,26 @@ func (s *SystemService) checkSidecarTTL() {
 	defer s.mu.Unlock()
 
 	now := time.Now()
-	for id, sidecar := range s.sidecars {
-		// Check if offline (LastSeen > 10s)
-		if !sidecar.IsOffline && now.Sub(sidecar.LastSeen) > 10*time.Second {
-			sidecar.IsOffline = true
+	for id, src := range s.sources {
+		sc, ok := src.(*SidecarSource)
+		if !ok {
+			continue
+		}
 
-			// Prepare offline payload
+		if !sc.isOffline && now.Sub(sc.lastSeen) > 10*time.Second {
+			sc.isOffline = true
+
 			offlineData := &protocol.DataPayload{}
-			if sidecar.CurrentData != nil {
-				// Copy existing data to retain value
-				*offlineData = *sidecar.CurrentData
+			if sc.currentData != nil {
+				*offlineData = *sc.currentData
 			}
-
-			// Add offline prop
 			if offlineData.Props == nil {
 				offlineData.Props = make(map[string]any)
 			}
 			offlineData.Props["isOffline"] = true
 
-			// Update cache
 			s.cache[id] = offlineData
 
-			// Emit update immediately
 			if s.app != nil {
 				s.app.Event.Emit("stats:update", protocol.UpdateEvent{
 					ID:   id,
@@ -239,56 +237,29 @@ func (s *SystemService) StartMonitoring() {
 			continue
 		}
 
-		// Check Sidecars (Priority to sidecars if name collision? or Native?)
-		// Let's check Native first
-		if mod, exists := s.modules[widgetCfg.ID]; exists {
-			// Native Module Logic as before...
-			mergedProps := make(map[string]interface{})
-			for k, v := range widgetCfg.Props {
-				mergedProps[k] = v
-			}
-			mergedProps["minimal_mode"] = config.MinimalMode
-			mod.ApplyConfig(mergedProps)
-
-			stop := make(chan struct{})
-			s.stopChans[widgetCfg.ID] = stop
-
-			tasks = append(tasks, monitorTask{
-				mod:      mod,
-				renderID: mod.GetRenderConfig().ID,
-				stop:     stop,
-			})
+		src, exists := s.sources[widgetCfg.ID]
+		if !exists {
 			continue
 		}
 
-		// If not native, check if it's a known Sidecar
-		if sc, exists := s.sidecars[widgetCfg.ID]; exists {
-			// Sidecars don't need "monitorTask" (pushed based)
-			// But we should restore their cache if we have any?
-			// Actually StartMonitoring resets cache.
-			// Sidecars need to push data again to be seen?
-			// Protocol says "Sidecar must send heartbeat".
-			// So it's fine if we start empty.
-			// But we might want to keep the "Config" logic if we want to support Props override from Settings?
-			// Currently Sidecar handles its own props via DataPayload.
-			// But if user sets props in Settings (e.g. override color), we need to merge it?
-			// Phase 4 implies simple push. Merging config.Props (from settings) to sidecar payload is a bit complex
-			// because Sidecar controls the payload.
-			// Ideally Sidecar payload props wins, OR config wins?
-			// For now let's minimal implementation: Sidecar pushes everything.
+		mergedProps := make(map[string]interface{}, len(widgetCfg.Props)+1)
+		for k, v := range widgetCfg.Props {
+			mergedProps[k] = v
+		}
+		mergedProps["minimal_mode"] = config.MinimalMode
 
-			// We DO need to put sidecar into cache if we have LastData?
-			// No, s.cache is reset. Sidecar needs to push again.
+		// ApplyConfig for all sources (native + sidecar)
+		src.ApplyConfig(mergedProps)
 
-			// However, we should make sure we respect "Enabled" status.
-			// RegisterSidecar adds it to config.Enabled=true.
-			// If user disables it, RegisterSidecar still tracking it but we shouldn't Emit?
-			// UpdateSidecarData currently emits without checks.
-			// We should probably check Enabled status in UpdateSidecarData?
-			// Implementation Detail: UpdateSidecarData should check if ID is enabled in config?
-			// That would be slow (reading config every push).
-			// Maybe we cache "Enabled" state in SidecarModule?
-			_ = sc
+		// Only native modules need a goroutine ticker
+		if puller, ok := src.(modules.Module); ok {
+			stop := make(chan struct{})
+			s.stopChans[widgetCfg.ID] = stop
+			tasks = append(tasks, monitorTask{
+				mod:      puller,
+				renderID: puller.GetRenderConfig().ID,
+				stop:     stop,
+			})
 		}
 	}
 
@@ -324,7 +295,6 @@ func (s *SystemService) runMonitor(m modules.Module, eventID string, stopChan ch
 				continue
 			}
 
-			// Diff check: skip emit if data unchanged
 			s.mu.RLock()
 			lastData, ok := s.cache[eventID]
 			unchanged := ok && reflect.DeepEqual(lastData, data)
@@ -383,12 +353,12 @@ func (s *SystemService) UpdateOpacity(opacity float64) error {
 	return nil
 }
 
-// Keep GetSystemStats for backward compatibility or immediate fetch if needed
+// GetSystemStats kept for backward compatibility.
 func (s *SystemService) GetSystemStats() (any, error) {
 	return nil, nil
 }
 
-// GetCurrentData returns the last cached data for all active modules
+// GetCurrentData returns the last cached data for all active modules.
 func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -409,41 +379,33 @@ func (s *SystemService) GetModules() ([]ModuleInfo, error) {
 	var infos []ModuleInfo
 	processedIDs := make(map[string]bool)
 
-	// 1. Configured modules (Native + Sidecar)
+	// 1. Iterate configured widgets in order
 	for _, w := range config.Widgets {
-		// Native
-		if mod, exists := s.modules[w.ID]; exists {
+		s.mu.RLock()
+		src, exists := s.sources[w.ID]
+		s.mu.RUnlock()
+
+		if exists {
 			infos = append(infos, ModuleInfo{
 				ModuleID: w.ID,
-				Config:   mod.GetRenderConfig(),
+				Config:   src.GetRenderConfig(),
 				Enabled:  w.Enabled,
 			})
 			processedIDs[w.ID] = true
-			continue
-		}
-		// Sidecar
-		if sc, exists := s.sidecars[w.ID]; exists {
-			infos = append(infos, ModuleInfo{
-				ModuleID: w.ID,
-				Config:   sc.Config, // Should be populated by RegisterSidecar
-				Enabled:  w.Enabled,
-			})
-			processedIDs[w.ID] = true
-			continue
 		}
 	}
 
-	// 2. Unconfigured Sidecars (Just in case they are registered but not in config yet? Async race?)
-	// Actually RegisterSidecar adds to config async.
-	// If GetModules is called before ensureSidecarInConfig finishes, we might miss it.
-	// So let's add them here just in case.
-	s.mu.RLock() // Lock for reading sidecars
-	for id, sc := range s.sidecars {
+	// 2. Sidecars that arrived before ensureSidecarInConfig completed (async race)
+	s.mu.RLock()
+	for id, src := range s.sources {
+		if _, isNative := src.(modules.Module); isNative {
+			continue
+		}
 		if !processedIDs[id] {
 			infos = append(infos, ModuleInfo{
 				ModuleID: id,
-				Config:   sc.Config,
-				Enabled:  true, // Default true for new sidecars
+				Config:   src.GetRenderConfig(),
+				Enabled:  true,
 			})
 		}
 	}
@@ -455,19 +417,20 @@ func (s *SystemService) GetModules() ([]ModuleInfo, error) {
 // GetModuleConfigSchema returns the config schema for a specific module.
 // Accepts either the short module ID ("disk") or the full render ID ("glancehud.core.disk").
 func (s *SystemService) GetModuleConfigSchema(moduleID string) ([]protocol.ConfigSchema, error) {
-	// Try short ID first
-	if mod, ok := s.modules[moduleID]; ok {
-		return mod.GetConfigSchema(), nil
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Direct match by short ID
+	if src, ok := s.sources[moduleID]; ok {
+		return src.GetConfigSchema(), nil
 	}
-	// Fallback: match by RenderConfig.ID
-	for _, mod := range s.modules {
-		if mod.GetRenderConfig().ID == moduleID {
-			return mod.GetConfigSchema(), nil
+
+	// Fallback: match by RenderConfig.ID (full namespace)
+	for _, src := range s.sources {
+		if src.GetRenderConfig().ID == moduleID {
+			return src.GetConfigSchema(), nil
 		}
 	}
 
-	// Phase 4: Sidecar Config Schema?
-	// Currently Sidecars don't have Config Schema (they are code-driven).
-	// But we might want generic "Enabled" toggle which is handled by frontend regardless of schema.
 	return nil, nil
 }
