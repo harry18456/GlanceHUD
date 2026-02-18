@@ -49,13 +49,11 @@ func (m *CPUModule) GetRenderConfig() protocol.RenderConfig {
 	}
 	return protocol.RenderConfig{
 		ID:    "glancehud.core.cpu",
-		Type:  protocol.TypeGauge,
-		Title: "CPU Use",
+		Type:  protocol.TypeSpark,
+		Title: "CPU",
 		Props: map[string]any{
-			"min":   0,
-			"max":   100,
-			"unit":  "%",
-			"color": "text-green-500", // Tailwind color class or hex
+			"unit":      "%",
+			"maxPoints": 60, // 60s of history at 1s interval
 		},
 	}
 }
@@ -69,25 +67,12 @@ func (m *CPUModule) Update() (*protocol.DataPayload, error) {
 
 	payload := &protocol.DataPayload{
 		Value: usage,
-		Label: fmt.Sprintf("%.1f%%", usage),
 	}
 
-	// Minimal Mode Payload
+	// Minimal mode: key-value list
 	if m.minimalMode {
 		payload.Items = []protocol.KeyValueItem{
 			{Key: "CPU", Value: fmt.Sprintf("%.1f%%", usage), Icon: "Cpu"},
-		}
-		return payload, nil
-	}
-
-	// Dynamic Prop Override (Alert Color)
-	if usage > 90 {
-		payload.Props = map[string]any{
-			"color": "text-red-500",
-		}
-	} else {
-		payload.Props = map[string]any{
-			"color": "text-green-500",
 		}
 	}
 
