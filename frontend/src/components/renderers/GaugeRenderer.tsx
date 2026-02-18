@@ -18,7 +18,11 @@ interface Props {
 export const GaugeRenderer: React.FC<Props> = ({ config, data, containerWidth, containerHeight }) => {
   const value = typeof data?.value === "number" ? data.value : 0;
   const unit = (config.props?.unit as string) || "%";
-  const color = (config.props?.color as string) || statusColorHex(value);
+  const rawColor = config.props?.color as string | undefined;
+  // Only accept values that look like valid CSS colors (hex, rgb, hsl, named).
+  // Reject Tailwind class names like "text-blue-500" that would silently break SVG stroke.
+  const isValidCssColor = rawColor && /^(#|rgb|hsl|[a-z]+$)/i.test(rawColor);
+  const color = isValidCssColor ? rawColor : statusColorHex(value);
 
   // Scale factor based on container size relative to base
   const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1;

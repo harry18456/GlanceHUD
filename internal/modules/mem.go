@@ -55,7 +55,7 @@ func (m *MemModule) GetRenderConfig() protocol.RenderConfig {
 			"min":   0,
 			"max":   100,
 			"unit":  "%",
-			"color": "text-blue-500",
+			"color": "#38bdf8",
 		},
 	}
 }
