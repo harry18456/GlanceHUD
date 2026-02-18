@@ -26,24 +26,25 @@ export function RingProgress({
         className="ring-track"
         strokeWidth={strokeWidth}
       />
-      <motion.circle
-        cx={size / 2}
-        cy={size / 2}
-        r={r}
-        fill="none"
-        stroke={colour}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        initial={{ strokeDashoffset: circ }}
-        animate={{ strokeDashoffset: offset }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        style={{
-          transform: "rotate(-90deg)",
-          transformOrigin: "center",
-          filter: `drop-shadow(0 0 4px color-mix(in srgb, ${colour} 25%, transparent))`,
-        }}
-      />
+      {/* Rotate via SVG transform (explicit center) to avoid CSS transformOrigin quirks in WebView2 */}
+      <g transform={`rotate(-90, ${size / 2}, ${size / 2})`}>
+        <motion.circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={colour}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{
+            filter: `drop-shadow(0 0 4px color-mix(in srgb, ${colour} 25%, transparent))`,
+          }}
+        />
+      </g>
     </svg>
   );
 }
