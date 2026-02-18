@@ -49,20 +49,13 @@ function generateDefaultLayout(
   modules: ModuleInfo[],
   gridColumns: number
 ): LayoutItem[] {
-  return modules
-    .filter((m) => m.enabled)
-    .map((mod, idx) => {
-      const { w, h } = defaultSize(mod.config.type);
-      return {
-        i: mod.moduleId,
-        x: (idx % gridColumns) * w,
-        y: Math.floor(idx / gridColumns) * h,
-        w,
-        h,
-        minW: w,
-        minH: h,
-      };
-    });
+  const layouts: LayoutItem[] = [];
+  for (const mod of modules.filter((m) => m.enabled)) {
+    const { w, h } = defaultSize(mod.config.type);
+    const { x, y } = findFreePosition(layouts, w, h, gridColumns);
+    layouts.push({ i: mod.moduleId, x, y, w, h, minW: w, minH: h });
+  }
+  return layouts;
 }
 
 /** Check if a candidate rect overlaps with any existing layout item */
@@ -154,6 +147,7 @@ export function calcGridWidth(gridColumns: number): number {
 interface HudGridProps {
   modules: ModuleInfo[];
   dataMap: Record<string, DataPayload>;
+  historyMap?: Record<string, number[]>;
   widgetLayouts: Record<string, WidgetLayout>;
   gridColumns: number;
   contentWidth: number; // Actual visible width (derived from content extent)
@@ -167,6 +161,7 @@ interface HudGridProps {
 export const HudGrid: React.FC<HudGridProps> = ({
   modules,
   dataMap,
+  historyMap,
   widgetLayouts,
   gridColumns,
   contentWidth,
@@ -256,6 +251,7 @@ export const HudGrid: React.FC<HudGridProps> = ({
               <UniversalWidget
                 config={mod.config}
                 data={dataMap[mod.config.id]}
+                history={historyMap?.[mod.config.id]}
               />
             </motion.div>
           </div>

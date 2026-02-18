@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { RenderConfig, DataPayload } from "../types";
 import { GaugeRenderer } from './renderers/GaugeRenderer';
 import { BarListRenderer } from './renderers/BarListRenderer';
@@ -10,19 +10,15 @@ import { useContainerSize } from '../lib/useContainerSize';
 interface Props {
     config: RenderConfig;
     data?: DataPayload;
+    history?: number[];
 }
 
-export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
+export const UniversalWidget: React.FC<Props> = ({ config, data, history: externalHistory }) => {
     const [containerRef, { width, height }] = useContainerSize();
 
-    // Rolling history buffer — only used by sparkline type
+    // Rolling history buffer — accumulated in App.tsx, trimmed here to maxPoints
     const maxPoints = (config.props?.maxPoints as number) || 30;
-    const [history, setHistory] = useState<number[]>([]);
-    useEffect(() => {
-        if (config.type === "sparkline" && typeof data?.value === "number") {
-            setHistory(prev => [...prev, data.value as number].slice(-maxPoints));
-        }
-    }, [data?.value, config.type, maxPoints]);
+    const history = (externalHistory ?? []).slice(-maxPoints);
 
     const effectiveConfig = {
         ...config,

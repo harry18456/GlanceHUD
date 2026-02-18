@@ -44,6 +44,7 @@ function getLayoutOrigin(widgets: WidgetConfig[]): { x: number, y: number } {
 function App() {
   const [modules, setModules] = useState<ModuleInfo[]>([]);
   const [dataMap, setDataMap] = useState<Record<string, DataPayload>>({});
+  const [historyMap, setHistoryMap] = useState<Record<string, number[]>>({});
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
@@ -171,6 +172,15 @@ function App() {
           ...prev,
           [payload.id]: payload.data,
         }));
+
+        // Accumulate sparkline history (capped at 120 points; renderer trims to maxPoints)
+        if (typeof payload.data?.value === "number") {
+          const v = payload.data.value as number;
+          setHistoryMap((prev) => {
+            const prevHistory = prev[payload.id] ?? [];
+            return { ...prev, [payload.id]: [...prevHistory, v].slice(-120) };
+          });
+        }
       }
     });
 
@@ -278,7 +288,6 @@ function App() {
 
   const handleSettingsClose = () => {
     setIsSettingsOpen(false);
-    setDataMap({}); // Clear stale data
 
     // Reload config from backend, but preserve existing widget layouts
     // so the grid doesn't reset positions when toggling modules or changing settings.
@@ -571,6 +580,7 @@ function App() {
               <HudGrid
                 modules={modules}
                 dataMap={dataMap}
+                historyMap={historyMap}
                 widgetLayouts={widgetLayouts}
                 gridColumns={RGL_MAX_COLS}
                 contentWidth={gridWidth}
