@@ -49,14 +49,18 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 - [x] **System Tray 整合**
 - [x] **視窗控制**: 鎖定模式 (穿透) vs 編輯模式 (拖放佈局)。
 
-### Phase 4: 生態系與擴充 (Ecosystem) 📅 規劃中
+### Phase 4: 生態系與擴充 (Ecosystem) ✅ 已完成
 
-- [ ] **雙向 HTTP API (Bi-directional API)**:
-  - **資料注入 (Push)**: 開放 `POST /api/widget`，支援 **Lazy Registration** (第一次推送帶 Template 即自動註冊) 與 **Offline 機制** (10秒無心跳自動標記離線)。
-  - **狀態查詢 (Pull)**: 開放 `GET /api/stats`，允許外部裝置 (如 Home Assistant, Stream Deck) 讀取當前系統監控數據。
-- [ ] **插件系統 (Sidecar Plugins)**:
-  - 透過設定檔定義並自動啟動外部腳本 (Sidecar)，透過標準輸入/輸出 (stdio) 或 HTTP 與主程式溝通。
-  - **範例**: 提供 Python Script 範例 (`examples/python-sidecar.py`)，演示如何獲取 GPU/天氣資訊並推送到 HUD。
+- [x] **HTTP Push API (`POST /api/widget`)**:
+  - **Lazy Registration**: 第一次推送帶 Template 即自動註冊，無需預先設定。
+  - **Settings Schema**: Sidecar 可隨推送提供 Schema，GlanceHUD 自動在 Settings 面板產生設定表單。
+  - **Settings Feedback Loop**: 每次 POST 的 Response 帶回使用者修改的 `props`，供 Sidecar 即時讀取調整行為。
+  - **Offline 機制**: 10 秒無心跳自動標記離線，視覺上灰階降透明度顯示。
+  - **統一架構 (WidgetSource)**: Native 模組與 Sidecar 使用相同 interface，後端零冗餘邏輯。
+- [x] **Sidecar 範例**:
+  - `examples/python-sidecar.py` — 涵蓋全部 5 種 Widget 類型，並展示 Settings 雙向互動。
+  - `examples/gpu-monitor.py` — 真實 NVIDIA GPU 監控 (取代 gpustat/nvitop)，支援多 GPU，含核心使用率趨勢、VRAM/溫度/功耗/風扇、Top Processes。
+- [ ] **狀態查詢 (Pull)**: 開放 `GET /api/stats`，允許外部裝置 (如 Home Assistant, Stream Deck) 讀取當前系統監控數據。
 
 ### Phase 5: 品質與規範 (Quality Assurance) 📅 規劃中
 
@@ -87,11 +91,20 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 - **內容自適應視窗**: 視窗高度自動配合內容，無固定大小限制。
 - **獨立更新頻率**: CPU 每秒、Memory 每 2 秒、Disk 每 10 秒、Network 每秒。
 - **熱更新設定 (Hot Reload)**: 開關模組、切換極簡模式、變更磁碟選擇，存檔即生效，無需重啟。
-- **支援模組**:
-  - **CPU**: 即時負載 (Gauge + RingProgress 動畫)。
+- **Widget 類型**:
+  - **Sparkline**: 數值趨勢折線圖，含滾動歷史 buffer 與漸層填充。
+  - **Gauge**: 環形進度條，支援狀態自動配色。
+  - **Bar-list**: 水平進度條列表，適合磁碟/進程排名。
+  - **Key-value**: 圖示 + 文字的資訊卡，支援水平/垂直排列。
+  - **Text**: 大數值單行顯示，支援動態數字動畫。
+- **內建模組**:
+  - **CPU**: 即時負載趨勢 (Sparkline，60 點滾動緩衝)。
   - **Memory**: RAM 使用率 (Gauge + AnimatedNumber)。
   - **Disk**: 多磁區偵測，Checkbox 多選顯示 (Bar-list + Spring 動畫)。
   - **Network**: 即時上下行網速 (Key-value + Icon)。
+- **Sidecar 範例**:
+  - `examples/gpu-monitor.py` — NVIDIA GPU 監控，可直接取代 gpustat/nvitop (`pip install nvidia-ml-py requests`)。
+  - `examples/python-sidecar.py` — 5 種 Widget 類型完整 Demo，含 Settings 雙向互動。
 
 ---
 
