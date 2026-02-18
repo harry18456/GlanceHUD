@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Window } from "@wailsio/runtime";
 
 const DEFAULT_WIDTH = 400;
@@ -25,63 +25,56 @@ let windowShown = false;
  * WebView2 runs in COREWEBVIEW2_BOUNDS_MODE_USE_RAW_PIXELS, but the
  * DIP→physical conversion happens on the Go side, so we must NOT
  * multiply by devicePixelRatio here.
+ *
+ * @param gridWidth  desired window width in CSS pixels
+ * @param contentKey  change this value to force a re-sync (e.g. when toggling Settings)
  */
-export function useAutoResize(gridWidth?: number) {
+export function useAutoResize(gridWidth?: number, contentKey?: string | number) {
   const ref = useRef<HTMLDivElement>(null);
   const widthRef = useRef(gridWidth ?? DEFAULT_WIDTH);
 
   // Keep widthRef in sync with the latest grid width
   widthRef.current = gridWidth ? gridWidth + OUTER_PADDING : DEFAULT_WIDTH;
 
+  const sync = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const w = widthRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const h = Math.ceil(el.scrollHeight * dpr);
+    if (h > 0) {
+      try {
+        Window.SetSize(w, h);
+
+        // First resize done — reveal the window (see main.go Hidden:true)
+        if (!windowShown) {
+          windowShown = true;
+          Window.Show();
+        }
+      } catch (err: unknown) {
+        console.error("[Resize] SetSize failed:", err);
+      }
+    }
+  }, []);
+
+  // Observe element size changes
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
-    const sync = () => {
-      const w = widthRef.current;
-      const dpr = window.devicePixelRatio || 1;
-      const h = Math.ceil(el.scrollHeight * dpr); // Restore scaling
-      if (h > 0) {
-        try {
-          Window.SetSize(w, h);
-
-          // First resize done — reveal the window (see main.go Hidden:true)
-          if (!windowShown) {
-            windowShown = true;
-            Window.Show();
-          }
-        } catch (err: unknown) {
-          console.error("[Resize] SetSize failed:", err);
-          // Wails runtime may not be ready yet
-        }
-      }
-    };
 
     const observer = new ResizeObserver(() => sync());
     observer.observe(el);
     sync();
 
     return () => observer.disconnect();
-  }, []);
+  }, [sync]);
 
-  // Re-sync when grid column count changes (including Settings open/close)
+  // Re-sync when grid width or content type changes
+  // Defer to next frame so browser can finish layout first
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    // Defer to next frame so the browser can finish layout (e.g. SettingsModal mounting)
-    requestAnimationFrame(() => {
-      const w = widthRef.current;
-      const dpr = window.devicePixelRatio || 1;
-      const h = Math.ceil(el.scrollHeight * dpr);
-      if (h > 0) {
-        try {
-          Window.SetSize(w, h);
-        } catch {
-          // Wails runtime may not be ready yet
-        }
-      }
-    });
-  }, [gridWidth]);
+    requestAnimationFrame(() => sync());
+  }, [gridWidth, contentKey, sync]);
 
   return ref;
 }
+

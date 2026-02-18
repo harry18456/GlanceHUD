@@ -69,10 +69,10 @@ function App() {
   // Window width is based on actual content extent, not RGL cols
   const gridWidth = useMemo(() => calcGridWidth(maxContentCols), [maxContentCols]);
   
-  // Settings panel needs at least 400px; use grid width otherwise
-  const MIN_SETTINGS_WIDTH = 376; // 400 - 24 outer padding
+  // Settings panel needs at least 480px; use grid width otherwise
+  const MIN_SETTINGS_WIDTH = 480;
   const effectiveWidth = isSettingsOpen ? Math.max(gridWidth, MIN_SETTINGS_WIDTH) : gridWidth;
-  const glassRef = useAutoResize(effectiveWidth);
+  const glassRef = useAutoResize(effectiveWidth, isSettingsOpen ? "settings" : "grid");
 
   // Build widget layouts map from config
   const widgetLayouts = useMemo<Record<string, WidgetLayout>>(() => {

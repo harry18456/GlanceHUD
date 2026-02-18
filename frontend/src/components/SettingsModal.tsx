@@ -234,7 +234,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
       </div>
 
       {/* Module tabs */}
-      <div style={{ display: "flex", gap: 2, padding: "8px 20px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 2, padding: "8px 20px" }}>
         {modules.map((mod) => {
           const isActive = selectedModuleId === mod.moduleId;
           return (
