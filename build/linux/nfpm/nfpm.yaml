@@ -1,28 +1,26 @@
-# Feel free to remove those if you don't want/need to use them.
-# Make sure to check the documentation at https://nfpm.goreleaser.com
-#
-# The lines below are called `modelines`. See `:help modeline`
+# nfpm packaging config for GlanceHUD (Linux)
+# https://nfpm.goreleaser.com
 
-name: "glancehud.exe"
+name: "GlanceHUD"
 arch: ${GOARCH}
 platform: "linux"
-version: "0.1.0"
+version: "0.5.1"
 section: "default"
 priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
-description: "A GlanceHUD application"
-vendor: "My Company"
-homepage: "https://wails.io"
+description: "A cross-platform floating system monitor dashboard"
+vendor: "harry18456"
+homepage: "https://github.com/harry18456/GlanceHUD"
 license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/glancehud.exe"
-    dst: "/usr/local/bin/glancehud.exe"
+  - src: "./bin/GlanceHUD"
+    dst: "/usr/local/bin/GlanceHUD"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/glancehud.exe.png"
-  - src: "./build/linux/glancehud.exe.desktop"
-    dst: "/usr/share/applications/glancehud.exe.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/GlanceHUD.png"
+  - src: "./build/linux/GlanceHUD.desktop"
+    dst: "/usr/share/applications/GlanceHUD.desktop"
 
 # Default dependencies for Debian 12/Ubuntu 22.04+ with WebKit 4.1
 depends:
@@ -43,25 +41,5 @@ overrides:
       - gtk3
       - webkit2gtk-4.1
 
-# scripts section to ensure desktop database is updated after install
 scripts:
   postinstall: "./build/linux/nfpm/scripts/postinstall.sh"
-  # You can also add preremove, postremove if needed
-  # preremove: "./build/linux/nfpm/scripts/preremove.sh"
-  # postremove: "./build/linux/nfpm/scripts/postremove.sh"
-
-# replaces:
-#   - foobar
-# provides:
-#   - bar
-# depends:
-#   - gtk3
-#   - libwebkit2gtk
-# recommends:
-#   - whatever
-# suggests:
-#   - something-else
-# conflicts:
-#   - not-foo
-#   - not-bar
-# changelog: "changelog.yaml"
