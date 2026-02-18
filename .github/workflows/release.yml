@@ -23,7 +23,6 @@ jobs:
             platform: linux
             artifact_pattern: bin/*.AppImage
             asset_name: GlanceHUD-Linux.AppImage
-            # Linux requires dependencies
           - os: macos-latest
             platform: darwin
             artifact_pattern: bin/GlanceHUD.zip
@@ -56,13 +55,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential pkg-config
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
 
-      # Windows Dependencies (NSIS)
+      # Windows Dependencies (NSIS) - Use Choco for reliability
       - name: Setup Windows Dependencies
         if: matrix.platform == 'windows'
-        shell: powershell
         run: |
-          echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
+          choco install nsis
 
       # Build
       - name: Build Application
