@@ -105,16 +105,31 @@ def collect_gpu(handle) -> dict:
     except pynvml.NVMLError:
         metrics["fan_pct"] = None
 
-    # Running processes
+    # Running processes — combine compute + graphics to capture all GPU users.
+    # On NVML 12+ / driver 520+, usedGpuMemory may be None or the N/A sentinel
+    # (0xFFFFFFFFFFFFFFFF); treat those as 0 MB rather than crashing or hiding rows.
+    _MEM_NA = 0xFFFFFFFFFFFFFFFF
     try:
-        procs = pynvml.nvmlDeviceGetComputeRunningProcesses(handle)
-        metrics["procs"] = [
-            {
-                "pid": p.pid,
-                "vram_mb": p.usedGpuMemory // (1024 * 1024) if p.usedGpuMemory else 0,
-            }
-            for p in procs
-        ]
+        raw: list = []
+        try:
+            raw = list(pynvml.nvmlDeviceGetAllRunningProcesses(handle))
+        except AttributeError:
+            # Older nvidia-ml-py without GetAllRunningProcesses — merge both lists.
+            seen: set[int] = set()
+            for p in pynvml.nvmlDeviceGetComputeRunningProcesses(handle):
+                raw.append(p)
+                seen.add(p.pid)
+            for p in pynvml.nvmlDeviceGetGraphicsRunningProcesses(handle):
+                if p.pid not in seen:
+                    raw.append(p)
+
+        def _vram_mb(p) -> int:
+            mem = getattr(p, "usedGpuMemory", None)
+            if mem is None or mem == _MEM_NA:
+                return 0
+            return int(mem) // (1024 * 1024)
+
+        metrics["procs"] = [{"pid": p.pid, "vram_mb": _vram_mb(p)} for p in raw]
     except pynvml.NVMLError:
         metrics["procs"] = []
 
@@ -186,22 +201,33 @@ def build_info_data(metrics: dict) -> dict:
 
 
 def build_procs_data(metrics: dict, props: dict) -> dict:
-    """Bar-list — top GPU processes sorted by VRAM, capped at max_procs."""
+    """Bar-list — top GPU processes sorted by VRAM, capped at max_procs.
+
+    On Windows with driver R520+, NVML no longer reports per-process VRAM
+    (usedGpuMemory is always None). In that case vram_mb is 0 for every
+    process, so we fall back to alphabetical order and show 'N/A' instead
+    of a misleading '0 MB'.
+    """
     max_procs = max(1, int(props.get("max_procs", 5)))
     total_mb = metrics["mem_total_gb"] * 1024
 
-    procs = sorted(metrics["procs"], key=lambda p: p["vram_mb"], reverse=True)
+    all_zero = all(p["vram_mb"] == 0 for p in metrics["procs"])
+
+    if all_zero:
+        procs = sorted(metrics["procs"], key=lambda p: get_process_name(p["pid"]))
+    else:
+        procs = sorted(metrics["procs"], key=lambda p: p["vram_mb"], reverse=True)
+
     items = []
     for p in procs[:max_procs]:
         name = get_process_name(p["pid"])
-        pct = (p["vram_mb"] / total_mb * 100) if total_mb > 0 else 0
-        items.append(
-            {
-                "label": name,
-                "percent": round(pct, 1),
-                "value": f"{p['vram_mb']} MB",
-            }
-        )
+        if all_zero:
+            pct = 0.0
+            value = "N/A"
+        else:
+            pct = (p["vram_mb"] / total_mb * 100) if total_mb > 0 else 0
+            value = f"{p['vram_mb']} MB"
+        items.append({"label": name, "percent": round(pct, 1), "value": value})
     return {"items": items}
 
 
