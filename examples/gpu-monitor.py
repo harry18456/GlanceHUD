@@ -208,7 +208,12 @@ def build_procs_data(metrics: dict, props: dict) -> dict:
     process, so we fall back to alphabetical order and show 'N/A' instead
     of a misleading '0 MB'.
     """
-    max_procs = max(1, int(props.get("max_procs", 5)))
+    if not props.get("show_procs", True):
+        return {"items": []}
+
+    max_procs = max(0, int(props.get("max_procs", 5)))
+    if max_procs == 0:
+        return {"items": []}
     total_mb = metrics["mem_total_gb"] * 1024
 
     all_zero = all(p["vram_mb"] == 0 for p in metrics["procs"])
