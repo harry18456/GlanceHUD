@@ -59,13 +59,14 @@
 
 GlanceHUD 中的 Widget 依據資料來源分為兩種類型，其行為與機制有顯著差異：
 
-| 特性                | **Native Widgets** (內建)                        | **Sidecar Widgets** (外掛)                                             |
-| :------------------ | :----------------------------------------------- | :--------------------------------------------------------------------- |
-| **例子**            | CPU, Memory, Disk, Net                           | Python 腳本, Node.js 服務, 第三方工具                                  |
-| **資料來源**        | 直接由 GlanceHUD 主程式 (Backend) 讀取系統資訊。 | 由外部程式透過 HTTP API 推送給 GlanceHUD。                             |
-| **啟動方式**        | 隨主程式啟動，始終存在。                         | **Lazy Load (懶加載)**：只有當外部程式開始運作並推送資料時，才會顯示。 |
-| **Offline 機制**    | **不適用** (始終 Online)。                       | **適用**：若超過 10 秒未收到資料，會標記為 Offline。                   |
-| **設定檔 (Config)** | 預設存在於 `config.json` 中。                    | 第一次連線時會自動寫入 `config.json`，之後保留設定。                   |
+| 特性                    | **Native Widgets** (內建)                        | **Sidecar Widgets** (外掛)                                             |
+| :---------------------- | :----------------------------------------------- | :--------------------------------------------------------------------- |
+| **例子**                | CPU, Memory, Disk, Net                           | Python 腳本, Node.js 服務, 第三方工具                                  |
+| **資料來源**            | 直接由 GlanceHUD 主程式 (Backend) 讀取系統資訊。 | 由外部程式透過 HTTP API 推送給 GlanceHUD。                             |
+| **啟動方式**            | 隨主程式啟動，始終存在。                         | **Lazy Load (懶加載)**：只有當外部程式開始運作並推送資料時，才會顯示。 |
+| **Offline 機制**        | **不適用** (始終 Online)。                       | **適用**：若超過 10 秒未收到資料，會標記為 Offline。                   |
+| **設定檔 (Config)**     | 預設存在於 `config.json` 中。                    | 第一次連線時會自動寫入 `config.json`，之後保留設定。                   |
+| **Settings UI (Schema)** | 由 Go 程式碼定義 (`GetConfigSchema()`)。        | 可透過 `SidecarRequest.schema` 欄位動態提供，在 Settings 中顯示設定表單。使用者修改後，下次推送的 Response `props` 會帶回新值。 |
 
 ## 3. Sidecar 的運作機制 (Lazy Load)
 

@@ -6,14 +6,12 @@ GlanceHUD 內建一個輕量級的 HTTP Server，用於接收外部程式 (Sidec
 
 目前的伺服器設定為 **Hardcoded (寫死)**，尚不支援透過設定檔修改。
 
-| 項目          | 設定值                     | 說明                                                                                  |
-| :------------ | :------------------------- | :------------------------------------------------------------------------------------ |
-| **通訊協定**  | HTTP                       | 僅支援 HTTP，無 HTTPS。                                                               |
-| **監聽 Port** | `9090`                     | 固定使用 Port 9090。                                                                  |
-| **綁定介面**  | `0.0.0.0` (All Interfaces) | 預設綁定所有網路介面，這意味著區域網路內的裝置若未被防火牆阻擋，可能可以訪問此 API。  |
-| **CORS**      | 未特別處理                 | 目前主要供本機 (`localhost`) 使用，但因綁定 `0.0.0.0`，外部請求在網路層面上是可達的。 |
-
-> **⚠️ 安全注意**：由於綁定 `0.0.0.0` 且未實作驗證機制，建議在生產環境或公共網路中使用防火牆 (Firewall) 阻擋外部對 Port 9090 的連線，僅允許 `localhost` 存取。
+| 項目          | 設定值                  | 說明                                              |
+| :------------ | :---------------------- | :------------------------------------------------ |
+| **通訊協定**  | HTTP                    | 僅支援 HTTP，無 HTTPS。                           |
+| **監聽 Port** | `9090`                  | 固定使用 Port 9090。                              |
+| **綁定介面**  | `127.0.0.1` (Localhost) | 僅監聽本機迴路介面，區域網路內的其他裝置無法存取。 |
+| **CORS**      | 未特別處理              | 僅供本機 (`localhost`) 使用。                     |
 
 ---
 
@@ -32,12 +30,15 @@ GlanceHUD 內建一個輕量級的 HTTP Server，用於接收外部程式 (Sidec
 {
   "module_id": "python.example.gpu",
   "template": {
-    "type": "text",
+    "type": "gauge",
     "title": "GPU Load",
     "props": {
       "unit": "%"
     }
   },
+  "schema": [
+    { "name": "gpu_index", "label": "GPU Index", "type": "number", "default": 0 }
+  ],
   "data": {
     "value": 45,
     "label": "GPU",
@@ -50,18 +51,26 @@ GlanceHUD 內建一個輕量級的 HTTP Server，用於接收外部程式 (Sidec
 ```
 
 - **欄位說明**:
-  - `module_id` (Required): Widget 的唯一識別碼。
-  - `template` (Optional): 第一次註冊時使用的設定模板。若 ID 已存在 `config.json`，則此欄位會被忽略。
+  - `module_id` (Required): Widget 的唯一識別碼。建議使用 `namespace.name` 格式。
+  - `template` (Optional): 第一次註冊時使用的設定模板。若 ID 已存在，則忽略。
+  - `schema` (Optional): Settings UI 的設定表單 Schema。格式與 Native Module 的 `ConfigSchema` 相同。可隨 `template` 一同提供，或在後續推送時更新。
   - `data` (Optional): 實際推送的數據內容。
 
 #### 回應 (Response)
 
-- **200 OK**:
+- **200 OK**：回傳 `SidecarResponse`，包含目前使用者在 Settings 中設定的值：
   ```json
-  { "status": "ok" }
+  {
+    "status": "ok",
+    "props": {
+      "gpu_index": 0,
+      "minimal_mode": false
+    }
+  }
   ```
+  `props` 欄位可能為空（`null` 或省略），例如首次推送尚未 Apply Config 時。Sidecar 可讀取此回傳值以取得使用者設定。
 - **400 Bad Request**: JSON 格式錯誤或缺少 `module_id`。
-- **405 Method Not Allowed**:使用了非 POST 方法。
+- **405 Method Not Allowed**: 使用了非 POST 方法。
 
 ---
 

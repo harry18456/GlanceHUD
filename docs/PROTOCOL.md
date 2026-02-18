@@ -92,6 +92,11 @@ GlanceHUD 採用 **Lazy Registration** 模式。外部程式不需要先呼叫�
     "title": "NVIDIA GPU",
     "props": { "unit": "%", "max": 100 }
   },
+  "schema": [
+    { "name": "gpu_index", "label": "GPU Index", "type": "number", "default": 0 },
+    { "name": "unit",      "label": "Unit",      "type": "select", "default": "celsius",
+      "options": [{ "label": "°C", "value": "celsius" }, { "label": "°F", "value": "fahrenheit" }] }
+  ],
   "data": {
     "value": 78,
     "label": "78°C"
@@ -102,9 +107,25 @@ GlanceHUD 採用 **Lazy Registration** 模式。外部程式不需要先呼叫�
 - **`module_id`** (必填): 唯一識別碼，建議使用 `namespace.name` 格式。
 - **`template`** (選填):
   - 若 HUD 尚未有此 ID 的記錄，則使用此 Template 建立新 Widget。
-  - 若 HUD 已有此 ID，則忽略 Template (或可選擇更新)。
+  - 若 HUD 已有此 ID，則忽略 Template。
   - **建議**: 外部腳本可在每次啟動時的**第一次**推送帶上 Template，後續推送可省略。
+- **`schema`** (選填): Settings UI 的設定表單 Schema，格式與 `ConfigSchema` 相同 (詳見 Section 2)。可讓使用者在 GlanceHUD Settings 中調整 Sidecar 的參數。
 - **`data`** (必填): 要更新的數據 payload。
+
+**Response Body (`SidecarResponse`)**:
+
+```json
+{
+  "status": "ok",
+  "props": {
+    "gpu_index": 0,
+    "unit": "celsius",
+    "minimal_mode": false
+  }
+}
+```
+
+GlanceHUD 在每次收到 POST 後，都會於 Response 回傳目前使用者在 Settings 中設定的 `props`（合併了 `schema` 預設值與使用者修改的值，以及全域的 `minimal_mode`）。Sidecar 可讀取此回傳值，以便根據使用者偏好調整資料格式或顯示內容。首次推送後 `props` 可能為空，建議下次推送時再次讀取。
 
 ---
 
@@ -138,7 +159,7 @@ import psutil
 URL = "http://localhost:9090/api/widget"
 ID = "python.cpu.monitor"
 
-# 第一次推送: 包含 Template
+# 第一次推送: 包含 Template 與 Schema
 first_payload = {
     "module_id": ID,
     "template": {
@@ -146,9 +167,15 @@ first_payload = {
         "title": "Python CPU",
         "props": {"unit": "%"}
     },
-    "data": { "value": 0 }
+    "schema": [
+        {"name": "alert_threshold", "label": "Alert Threshold (%)", "type": "number", "default": 80}
+    ],
+    "data": {"value": 0}
 }
-requests.post(URL, json=first_payload)
+resp = requests.post(URL, json=first_payload).json()
+# 讀取使用者設定 (首次可能為空)
+user_props = resp.get("props") or {}
+alert_threshold = user_props.get("alert_threshold", 80)
 
 while True:
     cpu = psutil.cpu_percent()
@@ -163,10 +190,13 @@ while True:
     }
 
     try:
-        requests.post(URL, json=payload)
-        print(f"Pushed: {cpu}%")
-    except:
+        resp = requests.post(URL, json=payload).json()
+        # 每次推送後讀取最新使用者設定
+        user_props = resp.get("props") or {}
+        alert_threshold = user_props.get("alert_threshold", 80)
+        print(f"Pushed: {cpu}% (alert at {alert_threshold}%)")
+    except Exception:
         print("HUD not running?")
 
-    time.sleep(2) # 每 2 秒推送一次 (滿足 < 10s TTL)
+    time.sleep(2)  # 每 2 秒推送一次 (滿足 < 10s TTL)
 ```
