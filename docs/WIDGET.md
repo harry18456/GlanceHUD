@@ -105,7 +105,7 @@ Offline 機制 **僅適用於 Sidecar Widgets** (透過 `http://localhost:9090/a
 - **判定方式**：Backend 會檢查每個 Sidecar 最後一次成功推送資料的時間 (`LastSeen`)。
 - **Timeout 時間**：固定為 **10 秒** (Hardcoded)。
 - **行為**：若超過 10 秒未收到資料，該 Widget 會被標記為 `Offline`。
-  - 前端收到更新後，可在 UI 上顯示離線狀態 (目前前端 UI 尚未實作顯示效果，僅數據層標記)。
+  - 前端收到更新後，Widget 會變為灰階並降低透明度，標題列顯示「Offline」標籤。
   - 一旦 Sidecar 重新推送資料，狀態會立即恢復為 Online。
 
 ### 4.3 設定限制
