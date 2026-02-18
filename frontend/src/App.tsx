@@ -277,11 +277,10 @@ function App() {
       })
       .then((data: any) => {
         if (data) {
-          if (data instanceof Map) {
-            setDataMap(Object.fromEntries(data.entries()) as Record<string, DataPayload>);
-          } else {
-            setDataMap(data);
-          }
+          const snapshot: Record<string, DataPayload> = data instanceof Map
+            ? Object.fromEntries(data.entries())
+            : data;
+          setDataMap(prev => ({ ...prev, ...snapshot }));
         }
       });
   };
