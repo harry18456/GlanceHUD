@@ -95,7 +95,15 @@ type SelectOption struct {
 
 // SidecarRequest 對應 POST /api/widget 的 Body
 type SidecarRequest struct {
-	ModuleID string        `json:"module_id"`
-	Template *RenderConfig `json:"template,omitempty"` // 第一次註冊時必填
-	Data     *DataPayload  `json:"data"`               // 更新數據
+	ModuleID string         `json:"module_id"`
+	Template *RenderConfig  `json:"template,omitempty"` // 第一次註冊時必填
+	Schema   []ConfigSchema `json:"schema,omitempty"`   // 可選：settings 表單 schema
+	Data     *DataPayload   `json:"data"`               // 更新數據
+}
+
+// SidecarResponse 對應 POST /api/widget 的 Response
+// Props 包含使用者在 Settings 中設定的值，供 sidecar 讀回
+type SidecarResponse struct {
+	Status string         `json:"status"`
+	Props  map[string]any `json:"props,omitempty"`
 }

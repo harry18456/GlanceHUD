@@ -57,24 +57,21 @@ func (s *APIService) handleWidgetPush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Lazy Registration / Ensure Existence
-	// This creates the module in RAM if missing, and updates config if Template is provided
-	s.systemService.RegisterSidecar(req.ModuleID, req.Template, nil)
+	// Lazy registration: create in RAM if new, update template/schema if provided
+	s.systemService.RegisterSidecar(req.ModuleID, req.Template, req.Schema)
 
-	// Update Data
+	// Update data and capture current props to return to sidecar
+	var currentProps map[string]interface{}
 	if req.Data != nil {
-		s.systemService.UpdateSidecarData(req.ModuleID, req.Data)
+		currentProps = s.systemService.UpdateSidecarData(req.ModuleID, req.Data)
 	}
 
-	// NOTE: We don't emit "widget:update" anymore because SystemService.UpdateSidecarData emits "stats:update"
-	// and creates uniformity with native modules.
-	// However, frontend currently listens to BOTH "stats:update" and "widget:update".
-	// "widget:update" was a temporary hack in Phase 3.
-	// We should unify everything to "stats:update".
-
-	// fmt.Printf("[API] Pushed data for %s\n", req.ModuleID)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.NewEncoder(w).Encode(protocol.SidecarResponse{
+		Status: "ok",
+		Props:  currentProps,
+	})
 }
 
 func (s *APIService) handleStatsPull(w http.ResponseWriter, r *http.Request) {
