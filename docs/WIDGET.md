@@ -30,7 +30,7 @@
 | **Config** | `props.layout` | ✅ 支援 | 設定為 `"row"` 可切換為水平排列 (預設垂直)。                             |
 | **Config** | `props.color`  | ❌ 忽略 | Icon 顏色寫死為 `var(--color-info)`。                                    |
 | **Data**   | `items`        | ✅ 支援 | 包含多個 `{ key, value, icon }` 的列表。                                 |
-| **Data**   | `items[].icon` | ✅ 支援 | 需對應 `iconRegistry` 中的名稱 (如 `thermometer`, `sun`, `cloud-rain`)。 |
+| **Data**   | `items[].icon` | ✅ 支援 | 使用 kebab-case 名稱，詳見下方「可用 Icon 清單」。 |
 
 ### 1.3 BarListRenderer (`type: "bar-list"`)
 
@@ -52,6 +52,21 @@
 | **Config** | `props.unit`  | ✅ 支援 | 顯示於數值後方 (預設 `%`)。                |
 | **Config** | `props.color` | ❌ 忽略 | 圓環顏色自動根據 `value` 決定 (綠/黃/紅)。 |
 | **Data**   | `value`       | ✅ 支援 | 數值 (0-100)，決定進度與顏色。             |
+
+### 1.5 可用 Icon 清單
+
+`items[].icon` 欄位支援以下名稱（kebab-case 或 PascalCase 皆可，例如 `"cloud-rain"` 與 `"CloudRain"` 等效）：
+
+| 分類 | 可用名稱 |
+| :--- | :--- |
+| **硬體 / 系統** | `cpu`, `memory-stick`, `hard-drive`, `server`, `database`, `monitor`, `laptop`, `battery`, `battery-charging` |
+| **網路** | `arrow-up`, `arrow-down`, `arrow-up-down`, `wifi`, `wifi-off`, `globe`, `network`, `signal` |
+| **天氣 / 環境** | `sun`, `cloud`, `cloud-rain`, `cloud-snow`, `wind`, `droplets`, `thermometer`, `snowflake`, `zap` |
+| **狀態 / 警示** | `activity`, `alert-triangle`, `alert-circle`, `check-circle`, `x-circle`, `info`, `bell` |
+| **時間** | `clock`, `timer`, `calendar` |
+| **開發 / 流程** | `terminal`, `code`, `package`, `git-branch`, `layers` |
+| **指標** | `trending-up`, `trending-down`, `bar-chart-2`, `gauge` |
+| **其他** | `volume-2`, `volume-x`, `star`, `heart`, `home`, `music` |
 
 ---
 
