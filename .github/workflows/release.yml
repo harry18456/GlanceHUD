@@ -46,10 +46,8 @@ jobs:
       - name: Install Task
         run: go install github.com/go-task/task/v3/cmd/task@latest
 
-      - name: Install Wails v3 CLI
-        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.72
-
-      # Linux Dependencies
+      # Linux Dependencies must be installed BEFORE wails3 CLI
+      # because wails3 itself compiles against gtk/webkit headers
       - name: Install Linux Dependencies
         if: matrix.platform == 'linux'
         run: |
@@ -57,11 +55,16 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential pkg-config
           echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig" >> $GITHUB_ENV
 
-      # Windows Dependencies (NSIS) - Use Choco for reliability
+      # Windows Dependencies (NSIS) - add to PATH explicitly
       - name: Setup Windows Dependencies
         if: matrix.platform == 'windows'
+        shell: bash
         run: |
-          choco install nsis
+          choco install nsis -y
+          echo "C:/Program Files (x86)/NSIS" >> $GITHUB_PATH
+
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.72
 
       # Build
       - name: Build Application
