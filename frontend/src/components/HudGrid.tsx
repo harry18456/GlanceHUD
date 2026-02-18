@@ -28,6 +28,8 @@ function defaultSize(type: string): { w: number; h: number } {
       return { w: 2, h: 3 };   // ~160×120px
     case "text":
       return { w: 2, h: 2 };   // ~160×80px
+    case "sparkline":
+      return { w: 3, h: 2 };   // ~240×80px (wide format suits trend data)
     default:
       return { w: 2, h: 3 };
   }

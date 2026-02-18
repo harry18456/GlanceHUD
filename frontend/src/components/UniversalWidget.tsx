@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { RenderConfig, DataPayload } from "../types";
 import { GaugeRenderer } from './renderers/GaugeRenderer';
 import { BarListRenderer } from './renderers/BarListRenderer';
 import { KVRenderer } from './renderers/KVRenderer';
 import { TextRenderer } from './renderers/TextRenderer';
+import { SparklineRenderer } from './renderers/SparklineRenderer';
 import { useContainerSize } from '../lib/useContainerSize';
 
 interface Props {
@@ -13,6 +14,15 @@ interface Props {
 
 export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
     const [containerRef, { width, height }] = useContainerSize();
+
+    // Rolling history buffer — only used by sparkline type
+    const maxPoints = (config.props?.maxPoints as number) || 30;
+    const [history, setHistory] = useState<number[]>([]);
+    useEffect(() => {
+        if (config.type === "sparkline" && typeof data?.value === "number") {
+            setHistory(prev => [...prev, data.value as number].slice(-maxPoints));
+        }
+    }, [data?.value, config.type, maxPoints]);
 
     const effectiveConfig = {
         ...config,
@@ -34,9 +44,10 @@ export const UniversalWidget: React.FC<Props> = ({ config, data }) => {
                 return <KVRenderer config={effectiveConfig} data={data} containerWidth={width} containerHeight={height} />;
             case "text":
                 return <TextRenderer config={effectiveConfig} data={data} containerWidth={width} containerHeight={height} />;
-            // Placeholders for Phase 3
-            case "group":
             case "sparkline":
+                return <SparklineRenderer config={effectiveConfig} data={data} history={history} containerWidth={width} containerHeight={height} />;
+            // Placeholder
+            case "group":
                 return <div className="text-xs text-gray-500">[Pending: {config.type}]</div>;
             default:
                 return (
