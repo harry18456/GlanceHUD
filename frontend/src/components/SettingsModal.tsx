@@ -317,6 +317,42 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
             No additional settings for this module.
           </span>
         ) : null}
+
+        {/* Delete button for sidecar widgets */}
+        {activeWidget && modules.find((m) => m.moduleId === selectedModuleId)?.isSidecar && (
+          <button
+            onClick={async () => {
+              if (!window.confirm(`確定要刪除 "${activeModuleTitle}" 嗎？\n此操作會移除此 widget 的所有設定。`)) return;
+              try {
+                await SystemService.RemoveSidecar(activeWidget.id);
+                onClose();
+              } catch (err) {
+                console.error("[SettingsModal] RemoveSidecar failed:", err);
+              }
+            }}
+            style={{
+              marginTop: 16,
+              padding: "6px 12px",
+              background: "rgba(239, 68, 68, 0.12)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              borderRadius: 8,
+              color: "#ef4444",
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "all 0.15s",
+              width: "100%",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)";
+            }}
+          >
+            刪除此 Widget
+          </button>
+        )}
       </div>
 
       {/* Footer — Save / Cancel */}

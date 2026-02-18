@@ -64,19 +64,23 @@ export function useAutoResize(gridWidth?: number) {
     return () => observer.disconnect();
   }, []);
 
-  // Re-sync when grid column count changes
+  // Re-sync when grid column count changes (including Settings open/close)
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const w = widthRef.current;
-    const h = Math.ceil(el.scrollHeight);
-    if (h > 0) {
-      try {
-        Window.SetSize(w, h);
-      } catch {
-        // Wails runtime may not be ready yet
+    // Defer to next frame so the browser can finish layout (e.g. SettingsModal mounting)
+    requestAnimationFrame(() => {
+      const w = widthRef.current;
+      const dpr = window.devicePixelRatio || 1;
+      const h = Math.ceil(el.scrollHeight * dpr);
+      if (h > 0) {
+        try {
+          Window.SetSize(w, h);
+        } catch {
+          // Wails runtime may not be ready yet
+        }
       }
-    }
+    });
   }, [gridWidth]);
 
   return ref;

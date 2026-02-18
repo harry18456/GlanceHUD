@@ -43,6 +43,14 @@ export class ModuleInfo {
              */
             this["enabled"] = false;
         }
+        if (!("isSidecar" in $$source)) {
+            /**
+             * true for sidecar widgets
+             * @member
+             * @type {boolean}
+             */
+            this["isSidecar"] = false;
+        }
 
         Object.assign(this, $$source);
     }

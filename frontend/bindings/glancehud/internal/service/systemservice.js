@@ -98,6 +98,21 @@ export function RegisterSidecar(id, config, schema) {
 }
 
 /**
+ * RemoveSidecar removes a sidecar widget completely:
+ *   - removes from runtime sources map
+ *   - removes from data cache
+ *   - removes from persisted config (widgets array)
+ *   - emits config:reload so frontend refreshes
+ * 
+ * Native modules cannot be removed.
+ * @param {string} id
+ * @returns {$CancellablePromise<void>}
+ */
+export function RemoveSidecar(id) {
+    return $Call.ByID(1113411081, id);
+}
+
+/**
  * @param {modules$0.AppConfig} config
  * @returns {$CancellablePromise<void>}
  */

@@ -279,9 +279,10 @@ func (s *SystemService) SaveConfig(config modules.AppConfig) error {
 
 // ModuleInfo pairs the short config ID with the display RenderConfig.
 type ModuleInfo struct {
-	ModuleID string                `json:"moduleId"` // short ID for config ("cpu","disk",...)
-	Config   protocol.RenderConfig `json:"config"`   // display template
-	Enabled  bool                  `json:"enabled"`  // whether the module is active
+	ModuleID  string                `json:"moduleId"`  // short ID for config ("cpu","disk",...)
+	Config    protocol.RenderConfig `json:"config"`    // display template
+	Enabled   bool                  `json:"enabled"`   // whether the module is active
+	IsSidecar bool                  `json:"isSidecar"` // true for sidecar widgets
 }
 
 type monitorTask struct {
@@ -503,11 +504,13 @@ func (s *SystemService) GetModules() ([]ModuleInfo, error) {
 		src, exists := s.sources[w.ID]
 		var info ModuleInfo
 		if exists {
+			_, isSidecar := src.(*SidecarSource)
 			// Call GetRenderConfig under the lock to avoid race with RegisterSidecar
 			info = ModuleInfo{
-				ModuleID: w.ID,
-				Config:   src.GetRenderConfig(),
-				Enabled:  w.Enabled,
+				ModuleID:  w.ID,
+				Config:    src.GetRenderConfig(),
+				Enabled:   w.Enabled,
+				IsSidecar: isSidecar,
 			}
 		}
 		s.mu.RUnlock()
@@ -530,9 +533,10 @@ func (s *SystemService) GetModules() ([]ModuleInfo, error) {
 				continue // skip sidecars without a valid template
 			}
 			infos = append(infos, ModuleInfo{
-				ModuleID: id,
-				Config:   cfg,
-				Enabled:  true,
+				ModuleID:  id,
+				Config:    cfg,
+				Enabled:   true,
+				IsSidecar: true,
 			})
 		}
 	}
@@ -560,4 +564,59 @@ func (s *SystemService) GetModuleConfigSchema(moduleID string) ([]protocol.Confi
 	}
 
 	return nil, nil
+}
+
+// RemoveSidecar removes a sidecar widget completely:
+//   - removes from runtime sources map
+//   - removes from data cache
+//   - removes from persisted config (widgets array)
+//   - emits config:reload so frontend refreshes
+//
+// Native modules cannot be removed.
+func (s *SystemService) RemoveSidecar(id string) error {
+	s.mu.Lock()
+
+	src, exists := s.sources[id]
+	if !exists {
+		s.mu.Unlock()
+		return fmt.Errorf("widget %q not found", id)
+	}
+
+	// Protect native modules from deletion
+	if _, isNative := src.(modules.Module); isNative {
+		s.mu.Unlock()
+		return fmt.Errorf("cannot remove native module %q", id)
+	}
+
+	// Remove from runtime state
+	delete(s.sources, id)
+
+	// Remove from cache (sidecar cache key = config ID, same as source key)
+	renderID := src.GetRenderConfig().ID
+	delete(s.cache, id)
+	if renderID != id {
+		delete(s.cache, renderID)
+	}
+
+	s.mu.Unlock()
+
+	// Remove from persisted config
+	appConfig := s.configService.GetConfig()
+	filtered := make([]modules.WidgetConfig, 0, len(appConfig.Widgets))
+	for _, w := range appConfig.Widgets {
+		if w.ID != id {
+			filtered = append(filtered, w)
+		}
+	}
+	appConfig.Widgets = filtered
+	_ = s.SaveConfig(appConfig)
+
+	fmt.Printf("[RemoveSidecar] Removed %s from sources and config\n", id)
+
+	// Notify frontend
+	if s.app != nil {
+		s.app.Event.Emit("config:reload", nil)
+	}
+
+	return nil
 }

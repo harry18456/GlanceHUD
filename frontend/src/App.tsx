@@ -256,6 +256,7 @@ function App() {
           moduleId: i.moduleId,
           config: i.config,
           enabled: i.enabled ?? true,
+          isSidecar: i.isSidecar ?? false,
         }));
 
         if (isInitialLoadRef.current) {

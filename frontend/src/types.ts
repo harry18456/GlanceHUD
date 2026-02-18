@@ -31,6 +31,7 @@ export interface ModuleInfo {
     moduleId: string;       // short config ID: "cpu", "disk", etc.
     config: RenderConfig;   // display template
     enabled: boolean;       // whether the module is active
+    isSidecar?: boolean;    // true for sidecar widgets (can be deleted)
 }
 
 export interface UpdateEvent {

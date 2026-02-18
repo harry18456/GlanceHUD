@@ -8,6 +8,7 @@ declare module "*/bindings/glancehud/internal/service" {
         GetCurrentData(): Promise<Record<string, import("./types").DataPayload>>;
         RegisterSidecar(id: string, config: any): Promise<void>;
         UpdateSidecarData(id: string, data: any): Promise<void>;
+        RemoveSidecar(id: string): Promise<void>;
     };
 }
 
