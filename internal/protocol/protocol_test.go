@@ -67,7 +67,7 @@ func TestRenderConfig_EmptyProps(t *testing.T) {
 		t.Fatalf("Unmarshal error: %v", err)
 	}
 	// nil Props should round-trip as nil
-	if decoded.Props != nil && len(decoded.Props) != 0 {
+	if len(decoded.Props) != 0 {
 		t.Errorf("expected nil/empty Props, got %v", decoded.Props)
 	}
 }
