@@ -1,0 +1,89 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            artifact_pattern: build/windows/nsis/*.exe
+            asset_name: GlanceHUD-Windows-Installer.exe
+          - os: ubuntu-latest
+            platform: linux
+            artifact_pattern: bin/*.AppImage
+            asset_name: GlanceHUD-Linux.AppImage
+            # Linux requires dependencies
+          - os: macos-latest
+            platform: darwin
+            artifact_pattern: bin/GlanceHUD.zip
+            asset_name: GlanceHUD-macOS.zip
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Task
+        run: go install github.com/go-task/task/v3/cmd/task@latest
+
+      - name: Install Wails v3 CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0-alpha.72
+
+      # Linux Dependencies
+      - name: Install Linux Dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential
+
+      # Windows Dependencies (NSIS is pre-installed on windows-latest)
+
+      # Build
+      - name: Build Application
+        shell: bash
+        run: |
+          # Add GOPATH/bin to PATH
+          export PATH=$PATH:$(go env GOPATH)/bin
+
+          # Build
+          task package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Post-Build Processing (macOS zip)
+      - name: Zip macOS App
+        if: matrix.platform == 'darwin'
+        run: |
+          cd bin
+          zip -r GlanceHUD.zip GlanceHUD.app
+          cd ..
+
+      # Upload Release Asset
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ matrix.artifact_pattern }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
