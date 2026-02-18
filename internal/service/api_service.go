@@ -30,8 +30,8 @@ func (s *APIService) startHTTPServer() {
 	mux.HandleFunc("/api/widget", s.handleWidgetPush)
 	mux.HandleFunc("/api/stats", s.handleStatsPull)
 
-	// TODO: Make port configurable
-	addr := ":9090"
+	// Bind to localhost only to prevent exposure to other network interfaces
+	addr := "127.0.0.1:9090"
 	fmt.Printf("[APIService] Listening on %s\n", addr)
 
 	if err := http.ListenAndServe(addr, mux); err != nil {
@@ -68,10 +68,12 @@ func (s *APIService) handleWidgetPush(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(protocol.SidecarResponse{
+	if err := json.NewEncoder(w).Encode(protocol.SidecarResponse{
 		Status: "ok",
 		Props:  currentProps,
-	})
+	}); err != nil {
+		fmt.Printf("[APIService] Failed to encode response for %s: %v\n", req.ModuleID, err)
+	}
 }
 
 func (s *APIService) handleStatsPull(w http.ResponseWriter, r *http.Request) {

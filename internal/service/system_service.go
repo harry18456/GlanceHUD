@@ -61,6 +61,7 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 
 	// Native module wins – do not overwrite
 	if _, isNative := s.sources[id].(modules.Module); isNative {
+		fmt.Printf("[RegisterSidecar] Ignoring sidecar %q: native module with same ID exists\n", id)
 		s.mu.Unlock()
 		return
 	}
@@ -68,7 +69,14 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 	existing, exists := s.sources[id]
 	var sc *SidecarSource
 	if exists {
-		sc = existing.(*SidecarSource)
+		var ok bool
+		sc, ok = existing.(*SidecarSource)
+		if !ok {
+			// Should never happen: unknown WidgetSource implementation
+			fmt.Printf("[RegisterSidecar] Unexpected source type for %q, skipping\n", id)
+			s.mu.Unlock()
+			return
+		}
 	} else {
 		sc = &SidecarSource{
 			id:       id,
@@ -171,9 +179,19 @@ func (s *SystemService) checkSidecarTTL() {
 		if !sc.isOffline && now.Sub(sc.lastSeen) > 10*time.Second {
 			sc.isOffline = true
 
+			// Deep copy to avoid mutating sc.currentData.Props via shared map reference
 			offlineData := &protocol.DataPayload{}
 			if sc.currentData != nil {
 				*offlineData = *sc.currentData
+				if sc.currentData.Props != nil {
+					propsCopy := make(map[string]any, len(sc.currentData.Props))
+					for k, v := range sc.currentData.Props {
+						propsCopy[k] = v
+					}
+					offlineData.Props = propsCopy
+				} else {
+					offlineData.Props = nil
+				}
 			}
 			if offlineData.Props == nil {
 				offlineData.Props = make(map[string]any)
@@ -273,13 +291,15 @@ func (s *SystemService) StartMonitoring() {
 
 func (s *SystemService) runMonitor(m modules.Module, eventID string, stopChan chan struct{}) {
 	if data, err := m.Update(); err == nil {
-		s.app.Event.Emit("stats:update", protocol.UpdateEvent{
-			ID:   eventID,
-			Data: data,
-		})
 		s.mu.Lock()
 		s.cache[eventID] = data
 		s.mu.Unlock()
+		if s.app != nil {
+			s.app.Event.Emit("stats:update", protocol.UpdateEvent{
+				ID:   eventID,
+				Data: data,
+			})
+		}
 	}
 
 	ticker := time.NewTicker(m.Interval())
@@ -383,14 +403,19 @@ func (s *SystemService) GetModules() ([]ModuleInfo, error) {
 	for _, w := range config.Widgets {
 		s.mu.RLock()
 		src, exists := s.sources[w.ID]
-		s.mu.RUnlock()
-
+		var info ModuleInfo
 		if exists {
-			infos = append(infos, ModuleInfo{
+			// Call GetRenderConfig under the lock to avoid race with RegisterSidecar
+			info = ModuleInfo{
 				ModuleID: w.ID,
 				Config:   src.GetRenderConfig(),
 				Enabled:  w.Enabled,
-			})
+			}
+		}
+		s.mu.RUnlock()
+
+		if exists {
+			infos = append(infos, info)
 			processedIDs[w.ID] = true
 		}
 	}
