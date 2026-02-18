@@ -25,9 +25,7 @@ type WidgetConfig struct {
 
 type AppConfig struct {
 	Widgets      []WidgetConfig `json:"widgets"`
-	Theme        string         `json:"theme"`
 	MinimalMode  bool           `json:"minimalMode"`
-	GridColumns  int            `json:"gridColumns"`  // grid columns, default 2
 	Opacity      float64        `json:"opacity"`      // 0.1~1.0, default 0.72
 	WindowMode   string         `json:"windowMode"`   // "normal"|"locked"
 	DebugConsole bool           `json:"debugConsole"` // show debug console
@@ -51,7 +49,6 @@ func NewConfigService(configDir string, modules map[string]Module) (*ConfigServi
 		configPath: configPath,
 		Config: AppConfig{
 			Widgets: defaults,
-			Theme:   "neon",
 		},
 	}
 
@@ -130,9 +127,6 @@ func (cs *ConfigService) GetConfig() AppConfig {
 
 // withDefaults returns a copy with zero-value fields replaced by defaults.
 func (cs *ConfigService) withDefaults(cfg AppConfig) AppConfig {
-	if cfg.GridColumns <= 0 || cfg.GridColumns > 6 {
-		cfg.GridColumns = 2
-	}
 	if cfg.Opacity <= 0 {
 		cfg.Opacity = 0.72
 	}

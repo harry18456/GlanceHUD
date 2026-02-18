@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"glancehud/internal/modules"
 	"glancehud/internal/protocol"
+	"log/slog"
 	"reflect"
 	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
+
+// SidecarTTL is the duration after which a sidecar widget is marked offline
+// if no data push is received.
+const SidecarTTL = 10 * time.Second
 
 type SystemService struct {
 	app           *application.App
@@ -82,7 +87,7 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 
 	// Native module wins – do not overwrite
 	if _, isNative := s.sources[id].(modules.Module); isNative {
-		fmt.Printf("[RegisterSidecar] Ignoring sidecar %q: native module with same ID exists\n", id)
+		slog.Warn("Ignoring sidecar: native module with same ID exists", "id", id)
 		s.mu.Unlock()
 		return
 	}
@@ -94,7 +99,7 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 		sc, ok = existing.(*SidecarSource)
 		if !ok {
 			// Should never happen: unknown WidgetSource implementation
-			fmt.Printf("[RegisterSidecar] Unexpected source type for %q, skipping\n", id)
+			slog.Warn("Unexpected source type for sidecar, skipping", "id", id)
 			s.mu.Unlock()
 			return
 		}
@@ -143,7 +148,9 @@ func (s *SystemService) ensureSidecarInConfig(id string, tmpl protocol.RenderCon
 			if w.SidecarType != string(tmpl.Type) || w.SidecarTitle != tmpl.Title {
 				appConfig.Widgets[i].SidecarType = string(tmpl.Type)
 				appConfig.Widgets[i].SidecarTitle = tmpl.Title
-				_ = s.configService.UpdateConfig(appConfig)
+				if err := s.configService.UpdateConfig(appConfig); err != nil {
+					slog.Error("Failed to update sidecar config", "id", id, "error", err)
+				}
 			}
 			return
 		}
@@ -171,8 +178,10 @@ func (s *SystemService) ensureSidecarInConfig(id string, tmpl protocol.RenderCon
 	}
 	appConfig.Widgets = append(appConfig.Widgets, newWidget)
 
-	_ = s.SaveConfig(appConfig)
-	fmt.Printf("[Detected New Sidecar] Added %s to config\n", id)
+	if err := s.SaveConfig(appConfig); err != nil {
+		slog.Error("Failed to save config for new sidecar", "id", id, "error", err)
+	}
+	slog.Info("Detected new sidecar, added to config", "id", id)
 }
 
 // UpdateSidecarData updates data for a sidecar source and returns the current
@@ -229,7 +238,7 @@ func (s *SystemService) checkSidecarTTL() {
 			continue
 		}
 
-		if !sc.isOffline && now.Sub(sc.lastSeen) > 10*time.Second {
+		if !sc.isOffline && now.Sub(sc.lastSeen) > SidecarTTL {
 			sc.isOffline = true
 
 			// Deep copy to avoid mutating sc.currentData.Props via shared map reference
@@ -259,7 +268,7 @@ func (s *SystemService) checkSidecarTTL() {
 					Data: offlineData,
 				})
 			}
-			fmt.Printf("[Sidecar Offline] %s timed out\n", id)
+			slog.Warn("Sidecar timed out, marking offline", "id", id)
 		}
 	}
 }
@@ -425,11 +434,6 @@ func (s *SystemService) UpdateOpacity(opacity float64) error {
 		"opacity": opacity,
 	})
 	return nil
-}
-
-// GetSystemStats kept for backward compatibility.
-func (s *SystemService) GetSystemStats() (any, error) {
-	return nil, nil
 }
 
 // GetStats returns a snapshot of all active widgets, optionally filtered by render ID.
@@ -609,9 +613,11 @@ func (s *SystemService) RemoveSidecar(id string) error {
 		}
 	}
 	appConfig.Widgets = filtered
-	_ = s.SaveConfig(appConfig)
+	if err := s.SaveConfig(appConfig); err != nil {
+		slog.Error("Failed to save config after removing sidecar", "id", id, "error", err)
+	}
 
-	fmt.Printf("[RemoveSidecar] Removed %s from sources and config\n", id)
+	slog.Info("Removed sidecar from sources and config", "id", id)
 
 	// Notify frontend
 	if s.app != nil {

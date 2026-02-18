@@ -2,9 +2,10 @@ package service
 
 import (
 	"encoding/json"
-	"fmt"
 	"glancehud/internal/protocol"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -30,12 +31,16 @@ func (s *APIService) startHTTPServer() {
 	mux.HandleFunc("/api/widget", s.handleWidgetPush)
 	mux.HandleFunc("/api/stats", s.handleStatsPull)
 
-	// Bind to localhost only to prevent exposure to other network interfaces
-	addr := "127.0.0.1:9090"
-	fmt.Printf("[APIService] Listening on %s\n", addr)
+	// Allow port override via GLANCEHUD_PORT env var (default: 9090)
+	port := os.Getenv("GLANCEHUD_PORT")
+	if port == "" {
+		port = "9090"
+	}
+	addr := "127.0.0.1:" + port
+	slog.Info("API server listening", "addr", addr)
 
 	if err := http.ListenAndServe(addr, mux); err != nil {
-		fmt.Printf("[APIService] Error starting server: %v\n", err)
+		slog.Error("API server failed to start", "error", err)
 	}
 }
 
@@ -72,7 +77,7 @@ func (s *APIService) handleWidgetPush(w http.ResponseWriter, r *http.Request) {
 		Status: "ok",
 		Props:  currentProps,
 	}); err != nil {
-		fmt.Printf("[APIService] Failed to encode response for %s: %v\n", req.ModuleID, err)
+		slog.Error("Failed to encode response", "moduleId", req.ModuleID, "error", err)
 	}
 }
 
@@ -87,6 +92,6 @@ func (s *APIService) handleStatsPull(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		fmt.Printf("[APIService] Failed to encode stats response: %v\n", err)
+		slog.Error("Failed to encode stats response", "error", err)
 	}
 }

@@ -55,9 +55,7 @@ export interface WidgetConfig {
 
 export interface AppConfig {
     widgets: WidgetConfig[];
-    theme: string;
     minimalMode: boolean;
-    gridColumns: number;  // default 2
     opacity: number;      // 0.1~1.0, default 0.72
     windowMode: "normal" | "locked";
     debugConsole?: boolean;
