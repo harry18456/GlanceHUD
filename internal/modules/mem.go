@@ -9,12 +9,14 @@ import (
 )
 
 type MemModule struct {
-	minimalMode bool
+	minimalMode    bool
+	alertThreshold float64
 }
 
 func NewMemModule() *MemModule {
 	return &MemModule{
-		minimalMode: false,
+		minimalMode:    false,
+		alertThreshold: 85,
 	}
 }
 
@@ -30,10 +32,20 @@ func (m *MemModule) ApplyConfig(props map[string]interface{}) {
 	if val, ok := props["minimal_mode"].(bool); ok {
 		m.minimalMode = val
 	}
+	if val, ok := props["alert_threshold"].(float64); ok {
+		m.alertThreshold = val
+	}
 }
 
 func (m *MemModule) GetConfigSchema() []protocol.ConfigSchema {
-	return []protocol.ConfigSchema{}
+	return []protocol.ConfigSchema{
+		{
+			Name:    "alert_threshold",
+			Label:   "Alert Threshold (%)",
+			Type:    protocol.ConfigNumber,
+			Default: 85,
+		},
+	}
 }
 
 func (m *MemModule) GetRenderConfig() protocol.RenderConfig {
@@ -52,10 +64,9 @@ func (m *MemModule) GetRenderConfig() protocol.RenderConfig {
 		Type:  protocol.TypeGauge,
 		Title: "Memory",
 		Props: map[string]any{
-			"min":   0,
-			"max":   100,
-			"unit":  "%",
-			"color": "#38bdf8",
+			"min":  0,
+			"max":  100,
+			"unit": "%",
 		},
 	}
 }
@@ -75,6 +86,13 @@ func (m *MemModule) Update() (*protocol.DataPayload, error) {
 		Label: fmt.Sprintf("%.1f%%", usage),
 	}
 
+	// Alert: turn gauge red when usage exceeds threshold
+	if usage > m.alertThreshold {
+		payload.Props = map[string]any{
+			"color": "#ef4444",
+		}
+	}
+
 	if m.minimalMode {
 		payload.Items = []protocol.KeyValueItem{
 			{Key: "RAM", Value: fmt.Sprintf("%.1f G", usedGB), Icon: "MemoryStick"},
@@ -82,11 +100,6 @@ func (m *MemModule) Update() (*protocol.DataPayload, error) {
 		return payload, nil
 	}
 
-	// Add detail to label or sublabel if protocol supports it
-	// For now, Gauge just shows percentage.
-	// We can pass extra data in Items if the Gauge component is smart enough to show tooltip?
-	// The protocol.DataPayload has 'Items' as 'any'.
-	// Let's pass details there.
 	payload.Items = map[string]any{
 		"used":  fmt.Sprintf("%.1f GB", usedGB),
 		"total": fmt.Sprintf("%.0f GB", totalGB),

@@ -9,12 +9,14 @@ import (
 )
 
 type CPUModule struct {
-	minimalMode bool
+	minimalMode    bool
+	alertThreshold float64
 }
 
 func NewCPUModule() *CPUModule {
 	return &CPUModule{
-		minimalMode: false,
+		minimalMode:    false,
+		alertThreshold: 80,
 	}
 }
 
@@ -30,10 +32,20 @@ func (m *CPUModule) ApplyConfig(props map[string]interface{}) {
 	if val, ok := props["minimal_mode"].(bool); ok {
 		m.minimalMode = val
 	}
+	if val, ok := props["alert_threshold"].(float64); ok {
+		m.alertThreshold = val
+	}
 }
 
 func (m *CPUModule) GetConfigSchema() []protocol.ConfigSchema {
-	return []protocol.ConfigSchema{}
+	return []protocol.ConfigSchema{
+		{
+			Name:    "alert_threshold",
+			Label:   "Alert Threshold (%)",
+			Type:    protocol.ConfigNumber,
+			Default: 80,
+		},
+	}
 }
 
 func (m *CPUModule) GetRenderConfig() protocol.RenderConfig {
@@ -67,6 +79,13 @@ func (m *CPUModule) Update() (*protocol.DataPayload, error) {
 
 	payload := &protocol.DataPayload{
 		Value: usage,
+	}
+
+	// Alert: turn sparkline red when usage exceeds threshold
+	if usage > m.alertThreshold {
+		payload.Props = map[string]any{
+			"color": "#ef4444",
+		}
 	}
 
 	// Minimal mode: key-value list
