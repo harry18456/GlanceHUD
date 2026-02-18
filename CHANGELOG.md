@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [0.6.1] — 2026-02-18
+
+### Fixed
+
+- **Windows Release**: 修正 artifact pattern，從 `build/windows/nsis/*.exe`（只抓到 WebView2 bootstrapper）改為 `bin/*-installer.exe`（正確的 NSIS installer 輸出路徑）。
+
+---
+
 ## [0.6.0] — 2026-02-18
 
 ### Added
