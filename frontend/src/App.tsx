@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { DebugConsole, debugLog } from "./components/DebugConsole";
 import { SystemService } from "../bindings/glancehud/internal/service";
 import { ModuleInfo, DataPayload, UpdateEvent, AppConfig, WidgetLayout, WidgetConfig } from "./types";
 import { Events } from "@wailsio/runtime";
@@ -16,9 +17,6 @@ function applyOpacity(opacity: number) {
     String(Math.max(0.1, Math.min(1, opacity)))
   );
 }
-
-
-import { DebugConsole, debugLog } from "./components/DebugConsole";
 
 /** Helper: Calculate bounding box origin for enabled widgets */
 function getLayoutOrigin(widgets: WidgetConfig[]): { x: number, y: number } {
@@ -39,6 +37,23 @@ function getLayoutOrigin(widgets: WidgetConfig[]): { x: number, y: number } {
     x: minX === Infinity ? 0 : minX, 
     y: minY === Infinity ? 0 : minY 
   };
+}
+
+/** Utility: Calculate maxContentCols from widgets (avoids duplication across loadConfig/handleSettingsClose/save effect) */
+function calcMaxCols(widgets: WidgetConfig[], origin: { x: number, y: number }): number {
+  let maxCol = 0;
+  widgets.forEach(w => {
+    if (w.enabled !== false && w.layout) {
+      const right = w.layout.x + w.layout.w;
+      const renderedRight = right - origin.x;
+      if (renderedRight > maxCol) maxCol = renderedRight;
+    }
+  });
+  // Safety: ensure at least some width if we have widgets but no layout
+  if (maxCol === 0 && widgets.some(w => w.enabled !== false)) {
+    maxCol = 5;
+  }
+  return maxCol;
 }
 
 function App() {
@@ -128,19 +143,7 @@ function App() {
       
       // Calculate initial columns based on enabled widgets only (Virtual Origin)
       const origin = getLayoutOrigin(cfg.widgets);
-      let maxCol = 0;
-      cfg.widgets.forEach(w => {
-        if (w.enabled !== false && w.layout) {
-          const right = w.layout.x + w.layout.w;
-          const renderedRight = right - origin.x;
-          if (renderedRight > maxCol) maxCol = renderedRight;
-        }
-      });
-      // Safety: ensure at least some width if we have widgets but no layout (newly added)
-      if (maxCol === 0 && cfg.widgets.some(w => w.enabled !== false)) {
-        maxCol = 5; // Default width
-      }
-      setMaxContentCols(maxCol);
+      setMaxContentCols(calcMaxCols(cfg.widgets, origin));
 
     } catch {
       // silent
@@ -306,23 +309,8 @@ function App() {
           }));
 
           // Calculate Rendered Layout Width (Virtual Origin)
-          // We don't change the model coordinates (mergedWidgets), 
-          // but we calculate maxCol based on how they WOULD be rendered (shifted by minX).
           const origin = getLayoutOrigin(mergedWidgets);
-          
-          let maxCol = 0;
-          mergedWidgets.forEach(w => {
-            if (w.enabled !== false && w.layout) {
-              // Width = Right Edge - Origin X
-              const right = w.layout.x + w.layout.w;
-              const renderedRight = right - origin.x;
-              if (renderedRight > maxCol) maxCol = renderedRight;
-            }
-          });
-          if (maxCol === 0 && mergedWidgets.some(w => w.enabled !== false)) {
-            maxCol = 5;
-          }
-          setMaxContentCols(maxCol);
+          setMaxContentCols(calcMaxCols(mergedWidgets, origin));
 
           return { ...cfg, widgets: mergedWidgets };
         });
@@ -334,7 +322,6 @@ function App() {
     loadModules();
   };
 
-  // Track layout changes — update window width based on content extent
   // Track layout changes — update window width based on content extent
   const handleLayoutChange = useCallback((layout: Layout) => {
     // RGL returns layout in SHIFTED coordinates (relative to 0,0)
@@ -397,18 +384,11 @@ function App() {
       setAppConfig(newConfig);
       SystemService.SaveConfig(newConfig)
         .then(() => debugLog("INFO", "Layout", `Saved — ${newWidgets.filter(w => w.layout).length} widgets`))
-        .catch((err: unknown) => console.error("Failed to save layout config:", err));
+        .catch((err: unknown) => debugLog("ERR", "Layout", `Failed to save layout config: ${err}`));
       setPendingLayouts(null);
 
       // Recalculate maxContentCols after normalization
-      let maxCol = 0;
-      newWidgets.forEach(w => {
-        if (w.layout) {
-          const right = w.layout.x + w.layout.w;
-          if (right > maxCol) maxCol = right;
-        }
-      });
-      setMaxContentCols(maxCol);
+      setMaxContentCols(calcMaxCols(newWidgets, { x: 0, y: 0 }));
     }
   }, [isEditMode]);
 

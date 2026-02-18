@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { SystemService } from "../../bindings/glancehud/internal/service";
 import { AppConfig, ConfigSchema, ModuleInfo } from "../types";
 import { DynamicForm } from "./DynamicForm";
+import { debugLog } from "./DebugConsole";
 
 interface Props {
   onClose: () => void;
@@ -17,7 +18,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
 
   useEffect(() => {
     // If we have a currentConfig, use it directly.
-    console.log("[SettingsModal] init with currentConfig:", currentConfig);
+    debugLog("INFO", "Settings", "init with currentConfig");
     if (currentConfig) {
       setConfig(currentConfig);
       setOriginalOpacity(currentConfig.opacity || 0.72);
@@ -54,7 +55,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
 
   const handleSave = async () => {
     if (!config) return;
-    console.log("[SettingsModal] saving config:", config);
+    debugLog("INFO", "Settings", "saving config");
     try {
       await SystemService.SaveConfig(config);
       onClose();
@@ -132,7 +133,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
                 fontWeight: 500,
               }}
             >
-              極簡模式
+              Minimal Mode
             </span>
             <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>
               Compact layout for all modules
@@ -181,7 +182,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
         <div style={{ marginTop: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>
-              透明度
+              Opacity
             </span>
             <span style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
               {Math.round((config.opacity || 0.72) * 100)}%
@@ -322,12 +323,12 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
         {activeWidget && modules.find((m) => m.moduleId === selectedModuleId)?.isSidecar && (
           <button
             onClick={async () => {
-              if (!window.confirm(`確定要刪除 "${activeModuleTitle}" 嗎？\n此操作會移除此 widget 的所有設定。`)) return;
+              if (!window.confirm(`Remove "${activeModuleTitle}"?\nThis will delete all settings for this widget.`)) return;
               try {
                 await SystemService.RemoveSidecar(activeWidget.id);
                 onClose();
               } catch (err) {
-                console.error("[SettingsModal] RemoveSidecar failed:", err);
+                debugLog("ERR", "Settings", `RemoveSidecar failed: ${err}`);
               }
             }}
             style={{
@@ -350,7 +351,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
               e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)";
             }}
           >
-            刪除此 Widget
+            Remove Widget
           </button>
         )}
       </div>
