@@ -55,18 +55,13 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev build-essential
 
       # Windows Dependencies (NSIS is pre-installed on windows-latest)
 
       # Build
       - name: Build Application
-        shell: bash
         run: |
-          # Add GOPATH/bin to PATH
-          export PATH=$PATH:$(go env GOPATH)/bin
-
-          # Build
           task package
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
