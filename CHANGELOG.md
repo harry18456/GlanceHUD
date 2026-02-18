@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [0.6.0] — 2026-02-18
+
+### Added
+
+- **Release Workflow**: GitHub Actions 自動建置並發布 Windows Installer (.exe)、Linux AppImage/deb/rpm、macOS zip，由 tag push (`v*`) 或手動觸發。
+
+### Fixed
+
+- **Linux CI**: 將 `libgtk-3-dev` / `libwebkit2gtk-4.1-dev` 安裝步驟移至 `wails3 CLI` 編譯之前，解決 cgo 編譯時找不到 pkg-config 的問題。
+- **Windows CI**: `choco install nsis` 後將 NSIS 目錄加入 `$GITHUB_PATH`，解決 `makensis` 找不到的問題。
+- **Linux Packaging**: 修正 `build/linux/nfpm/nfpm.yaml` 中所有 `.exe` 殘留路徑，改為正確的 Linux binary 名稱 (`GlanceHUD`)。
+
+### Changed
+
+- CI workflow 恢復自動觸發（push / PR to master）。
+- Release workflow 新增 `workflow_dispatch` 支援手動觸發建置。
+
+---
+
 ## [0.5.1] — 2026-02-18
 
 ### Changed
