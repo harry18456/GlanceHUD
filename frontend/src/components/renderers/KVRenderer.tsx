@@ -69,9 +69,9 @@ export const KVRenderer: React.FC<Props> = ({ config, data, containerWidth, cont
         }}
       >
         <AnimatePresence mode="popLayout">
-          {items.map((item) => (
+          {items.map((item, idx) => (
             <motion.div
-              key={item.key}
+              key={`${item.key}-${idx}`}
               layout
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
