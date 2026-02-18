@@ -40,47 +40,9 @@ type DataPayload struct {
 
 ### 1.2 組件類型定義 (Component Types)
 
-定義於 `internal/protocol/protocol.go`:
+詳細的 Front-end Renderer 行為、支援屬性 (Props) 與數據格式 (Data) 請參閱 [WIDGET.md](./WIDGET.md)。
 
-#### A. `gauge` (環形進度條)
-
-- **Props**: `min`, `max`, `unit`, `color`
-- **Data**: `value` (number), `label` (string)
-
-#### B. `bar-list` (長條圖列表)
-
-- **Props**: `headers` (string[])
-- **Data**: `items` ([]BarListItem)
-  ```go
-  type BarListItem struct {
-  	Label   string  `json:"label"`
-  	Percent float64 `json:"percent"`
-  	Value   string  `json:"value"`
-  }
-  ```
-
-#### C. `key-value` (鍵值對列表)
-
-- **Props**: `layout` ("row" | "column")
-- **Data**: `items` ([]KeyValueItem)
-  ```go
-  type KeyValueItem struct {
-  	Key   string `json:"key"`
-  	Value string `json:"value"`
-  	Icon  string `json:"icon,omitempty"`
-  }
-  ```
-
-#### D. `group` (容器)
-
-- **Props**: `layout` ("horizontal" | "vertical"), `gap`, `align`, `children`
-
-#### E. `sparkline` (迷你趨勢圖)
-
-- **Props**: `lineColor`, `fillColor`, `maxDataPoints`
-- **Data**: `value` (number, push 1 point), `displayValue` (string)
-
----
+`PROTOCOL.md` 僅定義底層傳輸的通用結構，具體的渲染邏輯 (如 Gauge 顏色計算、BarList 排列方式) 由前端實作決定。
 
 ## 2. 設定協議 (Config Protocol)
 
@@ -182,7 +144,7 @@ first_payload = {
     "template": {
         "type": "gauge",
         "title": "Python CPU",
-        "props": {"unit": "%", "color": "text-blue-500"}
+        "props": {"unit": "%"}
     },
     "data": { "value": 0 }
 }

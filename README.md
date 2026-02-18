@@ -111,6 +111,13 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 wails3 dev
 ```
 
+### 📚 文件索引 (Documentation)
+
+- **[WIDGET.md](docs/WIDGET.md)**: Widget 設定參數、支援列表與 Offline 機制說明 (User Guide)。
+- **[API.md](docs/API.md)**: HTTP API 規格、Endpoints 與 Server 設定 (Integration Guide)。
+- **[PROTOCOL.md](docs/PROTOCOL.md)**: 底層通訊協議與資料結構定義 (Spec)。
+- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)**: 專案結構、建置流程與貢獻指南 (Contributor Guide)。
+
 ### 建置發布
 
 ```bash
