@@ -15,10 +15,12 @@ type WidgetLayout struct {
 }
 
 type WidgetConfig struct {
-	ID      string                 `json:"id"`
-	Enabled bool                   `json:"enabled"`
-	Props   map[string]interface{} `json:"props,omitempty"`
-	Layout  *WidgetLayout          `json:"layout,omitempty"`
+	ID           string                 `json:"id"`
+	Enabled      bool                   `json:"enabled"`
+	Props        map[string]interface{} `json:"props,omitempty"`
+	Layout       *WidgetLayout          `json:"layout,omitempty"`
+	SidecarType  string                 `json:"sidecarType,omitempty"`  // persisted for offline restore on restart
+	SidecarTitle string                 `json:"sidecarTitle,omitempty"` // persisted for offline restore on restart
 }
 
 type AppConfig struct {

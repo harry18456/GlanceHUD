@@ -118,6 +118,22 @@ export class WidgetConfig {
              */
             this["layout"] = undefined;
         }
+        if (/** @type {any} */(false)) {
+            /**
+             * persisted for offline restore on restart
+             * @member
+             * @type {string | undefined}
+             */
+            this["sidecarType"] = undefined;
+        }
+        if (/** @type {any} */(false)) {
+            /**
+             * persisted for offline restore on restart
+             * @member
+             * @type {string | undefined}
+             */
+            this["sidecarTitle"] = undefined;
+        }
 
         Object.assign(this, $$source);
     }

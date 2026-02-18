@@ -43,6 +43,27 @@ func NewSystemService() *SystemService {
 		cache:         make(map[string]*protocol.DataPayload),
 	}
 
+	// Restore offline sidecar sources from persisted config so widgets remain
+	// visible (as offline) on restart before the sidecar process re-registers.
+	for _, wc := range cs.GetConfig().Widgets {
+		if _, isNative := mods[wc.ID]; isNative {
+			continue
+		}
+		if wc.SidecarType == "" {
+			continue
+		}
+		sc := &SidecarSource{
+			id:        wc.ID,
+			isOffline: true,
+		}
+		sc.config = protocol.RenderConfig{
+			ID:    wc.ID,
+			Type:  protocol.ComponentType(wc.SidecarType),
+			Title: wc.SidecarTitle,
+		}
+		s.sources[wc.ID] = sc
+	}
+
 	go s.runTTLChecker()
 
 	return s
@@ -85,6 +106,13 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 		s.sources[id] = sc
 	}
 
+	// Capture whether this push is the first to provide a valid template for this source.
+	// This covers two cases:
+	//   1. Brand-new source (never seen before) receiving a template.
+	//   2. Existing source that had no type (e.g. created by a data-only push after
+	//      restart) now receiving its first template — the frontend must be told.
+	gainsTemplate := config != nil && sc.config.Type == ""
+
 	if config != nil {
 		sc.updateTemplate(*config, schema)
 	} else if schema != nil {
@@ -94,27 +122,39 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 	sc.markSeen()
 	s.mu.Unlock()
 
-	if !exists && s.app != nil {
+	// Notify frontend only when a source gains a valid template for the first time.
+	// Pure data-only pushes carry no render info; skipping the reload prevents both
+	// wasted round-trips and the "Unknown Widget Type" flash.
+	if gainsTemplate && s.app != nil {
 		s.app.Event.Emit("config:reload", nil)
 	}
 
-	if config != nil && !exists {
+	if config != nil {
 		go s.ensureSidecarInConfig(id, *config)
 	}
 }
 
 func (s *SystemService) ensureSidecarInConfig(id string, tmpl protocol.RenderConfig) {
 	appConfig := s.configService.GetConfig()
-	for _, w := range appConfig.Widgets {
+	for i, w := range appConfig.Widgets {
 		if w.ID == id {
+			// Persist template fields so we can restore the source on next restart.
+			// Only write to disk if something actually changed.
+			if w.SidecarType != string(tmpl.Type) || w.SidecarTitle != tmpl.Title {
+				appConfig.Widgets[i].SidecarType = string(tmpl.Type)
+				appConfig.Widgets[i].SidecarTitle = tmpl.Title
+				_ = s.configService.UpdateConfig(appConfig)
+			}
 			return
 		}
 	}
 
 	newWidget := modules.WidgetConfig{
-		ID:      id,
-		Enabled: true,
-		Props:   tmpl.Props,
+		ID:           id,
+		Enabled:      true,
+		Props:        tmpl.Props,
+		SidecarType:  string(tmpl.Type),
+		SidecarTitle: tmpl.Title,
 	}
 	appConfig.Widgets = append(appConfig.Widgets, newWidget)
 
@@ -406,6 +446,9 @@ func (s *SystemService) GetStats(filterID string) protocol.StatsResponse {
 }
 
 // GetCurrentData returns the last cached data for all active modules.
+// For sidecar sources that are offline and have no cached data (e.g. just restored
+// from config on restart), an offline payload is synthesized so the frontend can
+// display the offline overlay immediately.
 func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -416,6 +459,21 @@ func (s *SystemService) GetCurrentData() (map[string]protocol.DataPayload, error
 			results[id] = *data
 		}
 	}
+
+	// Synthesize offline payload for restored sidecar sources not yet in cache.
+	for id, src := range s.sources {
+		if _, inCache := results[id]; inCache {
+			continue
+		}
+		sc, ok := src.(*SidecarSource)
+		if !ok || !sc.isOffline {
+			continue
+		}
+		results[id] = protocol.DataPayload{
+			Props: map[string]any{"isOffline": true},
+		}
+	}
+
 	return results, nil
 }
 
@@ -441,7 +499,7 @@ func (s *SystemService) GetModules() ([]ModuleInfo, error) {
 		}
 		s.mu.RUnlock()
 
-		if exists {
+		if exists && info.Config.Type != "" {
 			infos = append(infos, info)
 			processedIDs[w.ID] = true
 		}
@@ -454,9 +512,13 @@ func (s *SystemService) GetModules() ([]ModuleInfo, error) {
 			continue
 		}
 		if !processedIDs[id] {
+			cfg := src.GetRenderConfig()
+			if cfg.Type == "" {
+				continue // skip sidecars without a valid template
+			}
 			infos = append(infos, ModuleInfo{
 				ModuleID: id,
-				Config:   src.GetRenderConfig(),
+				Config:   cfg,
 				Enabled:  true,
 			})
 		}

@@ -31,6 +31,9 @@ export function GetConfig() {
 
 /**
  * GetCurrentData returns the last cached data for all active modules.
+ * For sidecar sources that are offline and have no cached data (e.g. just restored
+ * from config on restart), an offline payload is synthesized so the frontend can
+ * display the offline overlay immediately.
  * @returns {$CancellablePromise<{ [_ in string]?: protocol$0.DataPayload }>}
  */
 export function GetCurrentData() {
