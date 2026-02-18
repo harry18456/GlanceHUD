@@ -22,7 +22,7 @@ GlanceHUD/
 ├── internal/               # 後端原始碼 (Golang)
 │   ├── modules/            # Native Modules 實作 (CPU, Mem, Disk...)
 │   ├── protocol/           # 通訊協議定義 (Structs)
-│   ├── service/            #核心服務 (SystemService, APIService)
+│   ├── service/            # 核心服務 (SystemService, APIService)
 │   └── ...
 ├── main.go                 # 程式進入點 (Wails App 初始化)
 └── wails.json              # Wails 專案設定
@@ -32,7 +32,7 @@ GlanceHUD/
 
 ### 必要工具
 
-1.  **Go** (1.21+)
+1.  **Go** (1.25+)
 2.  **Node.js** (18+) & **npm**
 3.  **Wails CLI** (v3 alpha)
 
@@ -58,7 +58,7 @@ wails3 dev
 ### 3.2 新增一個 Frontend Renderer (TSX)
 
 1.  在 `frontend/src/components/renderers/` 建立新的 `MyRenderer.tsx`。
-2.  在 `frontend/src/components/HudGrid.tsx` 中的 `renderWidget` switch-case 加入新的 type 對應。
+2.  在 `frontend/src/components/UniversalWidget.tsx` 中的 `renderContent()` switch-case 加入新的 type 對應。
 3.  (Optional) 更新 `docs/WIDGET.md` 說明新 Renderer 支援的 Props。
 
 ### 3.3 新增 Sidecar 支援
@@ -75,6 +75,8 @@ Sidecar 不需修改 GlanceHUD 原始碼。
 ## 5. Build (發布)
 
 ```bash
-# 建置 Windows 執行檔 (Output: bin/GlanceHUD.exe)
-wails3 task build:windows
+# 建置執行檔
+task build
+# 或直接使用 go build
+go build
 ```

@@ -93,9 +93,22 @@ GlanceHUD 採用 **Lazy Registration** 模式。外部程式不需要先呼叫�
     "props": { "unit": "%", "max": 100 }
   },
   "schema": [
-    { "name": "gpu_index", "label": "GPU Index", "type": "number", "default": 0 },
-    { "name": "unit",      "label": "Unit",      "type": "select", "default": "celsius",
-      "options": [{ "label": "°C", "value": "celsius" }, { "label": "°F", "value": "fahrenheit" }] }
+    {
+      "name": "gpu_index",
+      "label": "GPU Index",
+      "type": "number",
+      "default": 0
+    },
+    {
+      "name": "unit",
+      "label": "Unit",
+      "type": "select",
+      "default": "celsius",
+      "options": [
+        { "label": "°C", "value": "celsius" },
+        { "label": "°F", "value": "fahrenheit" }
+      ]
+    }
   ],
   "data": {
     "value": 78,
@@ -110,7 +123,7 @@ GlanceHUD 採用 **Lazy Registration** 模式。外部程式不需要先呼叫�
   - 若 HUD 已有此 ID，則忽略 Template。
   - **建議**: 外部腳本可在每次啟動時的**第一次**推送帶上 Template，後續推送可省略。
 - **`schema`** (選填): Settings UI 的設定表單 Schema，格式與 `ConfigSchema` 相同 (詳見 Section 2)。可讓使用者在 GlanceHUD Settings 中調整 Sidecar 的參數。
-- **`data`** (必填): 要更新的數據 payload。
+- **`data`** (選填): 要更新的數據 payload。若僅需維持心跳 (Heartbeat)，可只帶 `module_id`。
 
 **Response Body (`SidecarResponse`)**:
 

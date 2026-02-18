@@ -10,7 +10,7 @@
 
 > **注意**: 目前主要開發與測試環境為 **Windows**，其他平台 (macOS, Linux) 理論上支援但尚未完整驗證。
 
-![Screenshot](assets/images/screenshot.png)
+![Screenshot](assets/images/hud.png)
 
 ---
 
@@ -70,8 +70,8 @@ GlanceHUD 不僅是一個監控工具，更是一個 **「容器 (Container)」*
 
 ### Phase 6: 跨平台驗證 (Cross-Platform) 📅 規劃中
 
-- [ ] **Windows Support**:
-  - [ ] Windows 11 (x64)
+- [x] **Windows Support** (主要開發平台):
+  - [x] Windows 11 (x64)
   - [ ] Windows on ARM (e.g. Surface Pro 9/11)
 - [ ] **Linux Support**:
   - [ ] Ubuntu (x64)
