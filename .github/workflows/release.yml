@@ -18,7 +18,7 @@ jobs:
         include:
           - os: windows-latest
             platform: windows
-            artifact_pattern: build/windows/nsis/*.exe
+            artifact_pattern: bin/*-installer.exe
             asset_name: GlanceHUD-Windows-Installer.exe
           - os: ubuntu-24.04
             platform: linux
