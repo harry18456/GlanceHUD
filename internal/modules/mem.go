@@ -9,14 +9,12 @@ import (
 )
 
 type MemModule struct {
-	minimalMode    bool
-	alertThreshold float64
+	minimalMode bool
 }
 
 func NewMemModule() *MemModule {
 	return &MemModule{
-		minimalMode:    false,
-		alertThreshold: 85,
+		minimalMode: false,
 	}
 }
 
@@ -32,20 +30,10 @@ func (m *MemModule) ApplyConfig(props map[string]interface{}) {
 	if val, ok := props["minimal_mode"].(bool); ok {
 		m.minimalMode = val
 	}
-	if val, ok := props["alert_threshold"].(float64); ok {
-		m.alertThreshold = val
-	}
 }
 
 func (m *MemModule) GetConfigSchema() []protocol.ConfigSchema {
-	return []protocol.ConfigSchema{
-		{
-			Name:    "alert_threshold",
-			Label:   "Alert Threshold (%)",
-			Type:    protocol.ConfigNumber,
-			Default: 85,
-		},
-	}
+	return []protocol.ConfigSchema{}
 }
 
 func (m *MemModule) GetRenderConfig() protocol.RenderConfig {
@@ -84,13 +72,6 @@ func (m *MemModule) Update() (*protocol.DataPayload, error) {
 	payload := &protocol.DataPayload{
 		Value: usage,
 		Label: fmt.Sprintf("%.1f%%", usage),
-	}
-
-	// Alert: turn gauge red when usage exceeds threshold
-	if usage > m.alertThreshold {
-		payload.Props = map[string]any{
-			"color": "#ef4444",
-		}
 	}
 
 	if m.minimalMode {

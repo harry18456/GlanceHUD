@@ -130,11 +130,11 @@ func (s *SystemService) RegisterSidecar(id string, config *protocol.RenderConfig
 	}
 
 	if config != nil {
-		go s.ensureSidecarInConfig(id, *config)
+		go s.ensureSidecarInConfig(id, *config, schema)
 	}
 }
 
-func (s *SystemService) ensureSidecarInConfig(id string, tmpl protocol.RenderConfig) {
+func (s *SystemService) ensureSidecarInConfig(id string, tmpl protocol.RenderConfig, schema []protocol.ConfigSchema) {
 	appConfig := s.configService.GetConfig()
 	for i, w := range appConfig.Widgets {
 		if w.ID == id {
@@ -149,10 +149,23 @@ func (s *SystemService) ensureSidecarInConfig(id string, tmpl protocol.RenderCon
 		}
 	}
 
+	// Initialise Props from schema defaults so the sidecar receives meaningful
+	// values on the very first push, without requiring the user to open Settings.
+	// Layer order: schema defaults (base) → tmpl.Props (render overrides on top).
+	props := make(map[string]interface{})
+	for _, field := range schema {
+		if field.Name != "" && field.Default != nil {
+			props[field.Name] = field.Default
+		}
+	}
+	for k, v := range tmpl.Props {
+		props[k] = v
+	}
+
 	newWidget := modules.WidgetConfig{
 		ID:           id,
 		Enabled:      true,
-		Props:        tmpl.Props,
+		Props:        props,
 		SidecarType:  string(tmpl.Type),
 		SidecarTitle: tmpl.Title,
 	}
