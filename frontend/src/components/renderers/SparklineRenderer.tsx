@@ -1,18 +1,18 @@
-import React from "react";
-import { RenderConfig, DataPayload } from "../../types";
-import { AnimatedNumber } from "../AnimatedNumber";
-import { statusColorHex } from "../../lib/statusColor";
+import React from "react"
+import { RenderConfig, DataPayload } from "../../types"
+import { AnimatedNumber } from "../AnimatedNumber"
+import { statusColorHex } from "../../lib/statusColor"
 
 // Default container size (matches defaultSize in HudGrid: 3×2 = 240×80px)
-const BASE_W = 240;
-const BASE_H = 80;
+const BASE_W = 240
+const BASE_H = 80
 
 interface Props {
-  config: RenderConfig;
-  data?: DataPayload;
-  history: number[];
-  containerWidth: number;
-  containerHeight: number;
+  config: RenderConfig
+  data?: DataPayload
+  history: number[]
+  containerWidth: number
+  containerHeight: number
 }
 
 export const SparklineRenderer: React.FC<Props> = ({
@@ -22,42 +22,39 @@ export const SparklineRenderer: React.FC<Props> = ({
   containerWidth,
   containerHeight,
 }) => {
-  const value = typeof data?.value === "number" ? data.value : null;
-  const unit = (config.props?.unit as string) || "";
+  const value = typeof data?.value === "number" ? data.value : null
+  const unit = (config.props?.unit as string) || ""
   const color =
-    (config.props?.color as string) ||
-    (value !== null ? statusColorHex(value) : "#22c55e");
+    (config.props?.color as string) || (value !== null ? statusColorHex(value) : "#22c55e")
 
-  const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1;
-  const scaleH = containerHeight > 0 ? containerHeight / BASE_H : 1;
-  const scale = Math.min(scaleW, scaleH);
+  const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1
+  const scaleH = containerHeight > 0 ? containerHeight / BASE_H : 1
+  const scale = Math.min(scaleW, scaleH)
 
-  const titleFontSize = Math.max(9, Math.round(10 * scale));
-  const valueFontSize = Math.max(14, Math.round(18 * scale));
-  const headerHeight = Math.max(18, Math.round(22 * scale));
-  const padding = Math.max(6, Math.round(10 * scale));
-  const strokeWidth = Math.max(1, Math.round(1.5 * scale * 10) / 10);
-  const dotRadius = Math.max(2, Math.round(2.5 * scale * 10) / 10);
+  const titleFontSize = Math.max(9, Math.round(10 * scale))
+  const valueFontSize = Math.max(14, Math.round(18 * scale))
+  const headerHeight = Math.max(18, Math.round(22 * scale))
+  const padding = Math.max(6, Math.round(10 * scale))
+  const strokeWidth = Math.max(1, Math.round(1.5 * scale * 10) / 10)
+  const dotRadius = Math.max(2, Math.round(2.5 * scale * 10) / 10)
 
   // SVG coordinate space — sized to container minus header and padding
-  const svgW = Math.max(1, containerWidth - padding * 2);
-  const svgH = Math.max(1, containerHeight - headerHeight - padding * 1.5);
+  const svgW = Math.max(1, containerWidth - padding * 2)
+  const svgH = Math.max(1, containerHeight - headerHeight - padding * 1.5)
 
   // Y-axis: auto-scale with 10% vertical padding so the line never touches edges
-  const minVal = history.length > 1 ? Math.min(...history) : 0;
-  const maxVal = history.length > 1 ? Math.max(...history) : 100;
-  const range = maxVal - minVal || 1;
-  const yInset = svgH * 0.1;
+  const minVal = history.length > 1 ? Math.min(...history) : 0
+  const maxVal = history.length > 1 ? Math.max(...history) : 100
+  const range = maxVal - minVal || 1
+  const yInset = svgH * 0.1
 
   const toSvgPoint = (v: number, i: number) => ({
-    x: history.length > 1
-      ? (i / (history.length - 1)) * svgW
-      : svgW / 2,
+    x: history.length > 1 ? (i / (history.length - 1)) * svgW : svgW / 2,
     y: svgH - yInset - ((v - minVal) / range) * (svgH - yInset * 2),
-  });
+  })
 
-  const points = history.map(toSvgPoint);
-  const linePoints = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const points = history.map(toSvgPoint)
+  const linePoints = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")
   const fillPoints =
     points.length > 0
       ? [
@@ -65,10 +62,10 @@ export const SparklineRenderer: React.FC<Props> = ({
           `${points[points.length - 1].x.toFixed(1)},${svgH}`,
           `0,${svgH}`,
         ].join(" ")
-      : "";
+      : ""
 
   // Sanitize config.id for use as SVG gradient id (dots → dashes)
-  const gradId = `spark-grad-${config.id.replace(/\./g, "-")}`;
+  const gradId = `spark-grad-${config.id.replace(/\./g, "-")}`
 
   return (
     <div
@@ -110,11 +107,7 @@ export const SparklineRenderer: React.FC<Props> = ({
             color: "var(--text-primary)",
           }}
         >
-          {value !== null ? (
-            <AnimatedNumber value={value} decimals={1} suffix={unit} />
-          ) : (
-            "--"
-          )}
+          {value !== null ? <AnimatedNumber value={value} decimals={1} suffix={unit} /> : "--"}
         </span>
       </div>
 
@@ -171,5 +164,5 @@ export const SparklineRenderer: React.FC<Props> = ({
         )}
       </div>
     </div>
-  );
-};
+  )
+}

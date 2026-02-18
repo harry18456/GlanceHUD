@@ -1,92 +1,93 @@
-import React, { useState, useEffect } from "react";
-import { SystemService } from "../../bindings/glancehud/internal/service";
-import { AppConfig, ConfigSchema, ModuleInfo } from "../types";
-import { DynamicForm } from "./DynamicForm";
-import { debugLog } from "./DebugConsole";
+import React, { useState, useEffect } from "react"
+import { SystemService } from "../../bindings/glancehud/internal/service"
+import { AppConfig, ConfigSchema, ModuleInfo } from "../types"
+import { DynamicForm } from "./DynamicForm"
+import { debugLog } from "./DebugConsole"
 
 interface Props {
-  onClose: () => void;
-  modules: ModuleInfo[];
-  currentConfig: AppConfig | null;
+  onClose: () => void
+  modules: ModuleInfo[]
+  currentConfig: AppConfig | null
 }
 
 export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig }) => {
-  const [config, setConfig] = useState<AppConfig | null>(currentConfig);
-  const [originalOpacity, setOriginalOpacity] = useState<number>(currentConfig?.opacity || 0.72);
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-  const [schemas, setSchemas] = useState<Record<string, ConfigSchema[]>>({});
-
-  useEffect(() => {
-    // If we have a currentConfig, use it directly.
-    debugLog("INFO", "Settings", "init with currentConfig");
-    if (currentConfig) {
-      setConfig(currentConfig);
-      setOriginalOpacity(currentConfig.opacity || 0.72);
-    } else {
-      loadingFallback();
-    }
-    loadSchemas();
-  }, [currentConfig]);
-
-  const loadingFallback = async () => {
-    try {
-      const cfg = await SystemService.GetConfig();
-      setConfig(cfg);
-      setOriginalOpacity(cfg.opacity || 0.72);
-    } catch (_) { /* silent */ }
-  };
+  const [config, setConfig] = useState<AppConfig | null>(currentConfig)
+  const [originalOpacity, setOriginalOpacity] = useState<number>(currentConfig?.opacity || 0.72)
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null)
+  const [schemas, setSchemas] = useState<Record<string, ConfigSchema[]>>({})
 
   const loadSchemas = async () => {
     try {
-      const schemasMap: Record<string, ConfigSchema[]> = {};
+      const schemasMap: Record<string, ConfigSchema[]> = {}
       for (const mod of modules) {
-        const schema = await SystemService.GetModuleConfigSchema(mod.moduleId);
+        const schema = await SystemService.GetModuleConfigSchema(mod.moduleId)
         if (schema) {
-          schemasMap[mod.moduleId] = schema;
+          schemasMap[mod.moduleId] = schema
         }
       }
-      setSchemas(schemasMap);
+      setSchemas(schemasMap)
 
       if (modules.length > 0 && !selectedModuleId) {
-        setSelectedModuleId(modules[0].moduleId);
+        setSelectedModuleId(modules[0].moduleId)
       }
-    } catch (_) { /* silent */ }
-  };
+    } catch {
+      /* silent */
+    }
+  }
+
+  useEffect(() => {
+    // If we have a currentConfig, use it directly.
+    debugLog("INFO", "Settings", "init with currentConfig")
+    if (currentConfig) {
+      setConfig(currentConfig)
+      setOriginalOpacity(currentConfig.opacity || 0.72)
+    } else {
+      loadingFallback()
+    }
+    loadSchemas()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentConfig])
+
+  const loadingFallback = async () => {
+    try {
+      const cfg = await SystemService.GetConfig()
+      setConfig(cfg)
+      setOriginalOpacity(cfg.opacity || 0.72)
+    } catch {
+      /* silent */
+    }
+  }
 
   const handleSave = async () => {
-    if (!config) return;
-    debugLog("INFO", "Settings", "saving config");
+    if (!config) return
+    debugLog("INFO", "Settings", "saving config")
     try {
-      await SystemService.SaveConfig(config);
-      onClose();
-    } catch (_) {
+      await SystemService.SaveConfig(config)
+      onClose()
+    } catch {
       // silent
     }
-  };
+  }
 
   const handleWidgetChange = (moduleId: string, enabled: boolean) => {
-    if (!config) return;
-    const newWidgets = config.widgets.map((w) =>
-      w.id === moduleId ? { ...w, enabled } : w
-    );
-    setConfig({ ...config, widgets: newWidgets });
-  };
+    if (!config) return
+    const newWidgets = config.widgets.map((w) => (w.id === moduleId ? { ...w, enabled } : w))
+    setConfig({ ...config, widgets: newWidgets })
+  }
 
   const handlePropsChange = (moduleId: string, newProps: any) => {
-    if (!config) return;
+    if (!config) return
     const newWidgets = config.widgets.map((w) =>
       w.id === moduleId ? { ...w, props: newProps } : w
-    );
-    setConfig({ ...config, widgets: newWidgets });
-  };
+    )
+    setConfig({ ...config, widgets: newWidgets })
+  }
 
-  const activeWidget = config?.widgets.find((w) => w.id === selectedModuleId);
-  const activeSchema = selectedModuleId ? schemas[selectedModuleId] : [];
-  const activeModuleTitle = modules.find(
-    (m) => m.moduleId === selectedModuleId
-  )?.config.title;
+  const activeWidget = config?.widgets.find((w) => w.id === selectedModuleId)
+  const activeSchema = selectedModuleId ? schemas[selectedModuleId] : []
+  const activeModuleTitle = modules.find((m) => m.moduleId === selectedModuleId)?.config.title
 
-  if (!config) return null;
+  if (!config) return null
 
   return (
     <div className="no-drag" style={{ display: "flex", flexDirection: "column" }}>
@@ -116,9 +117,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
           <input
             type="checkbox"
             checked={config.minimalMode || false}
-            onChange={(e) =>
-              setConfig({ ...config, minimalMode: e.target.checked })
-            }
+            onChange={(e) => setConfig({ ...config, minimalMode: e.target.checked })}
             style={{
               width: 15,
               height: 15,
@@ -153,9 +152,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
           <input
             type="checkbox"
             checked={config.debugConsole || false}
-            onChange={(e) =>
-              setConfig({ ...config, debugConsole: e.target.checked })
-            }
+            onChange={(e) => setConfig({ ...config, debugConsole: e.target.checked })}
             style={{
               width: 15,
               height: 15,
@@ -184,7 +181,13 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
             <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>
               Opacity
             </span>
-            <span style={{ fontSize: 11, color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+            <span
+              style={{
+                fontSize: 11,
+                color: "var(--text-secondary)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
               {Math.round((config.opacity || 0.72) * 100)}%
             </span>
           </div>
@@ -195,10 +198,10 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
             step={5}
             value={Math.round((config.opacity || 0.72) * 100)}
             onChange={(e) => {
-              const opacity = parseInt(e.target.value, 10) / 100;
-              setConfig({ ...config, opacity });
+              const opacity = parseInt(e.target.value, 10) / 100
+              setConfig({ ...config, opacity })
               // Live preview
-              document.documentElement.style.setProperty("--hud-opacity", String(opacity));
+              document.documentElement.style.setProperty("--hud-opacity", String(opacity))
             }}
             style={{
               width: "100%",
@@ -208,7 +211,6 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
             }}
           />
         </div>
-
       </div>
 
       <div
@@ -237,31 +239,27 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
       {/* Module tabs */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 2, padding: "8px 20px" }}>
         {modules.map((mod) => {
-          const isActive = selectedModuleId === mod.moduleId;
+          const isActive = selectedModuleId === mod.moduleId
           return (
             <button
               key={mod.moduleId}
               onClick={() => setSelectedModuleId(mod.moduleId)}
               style={{
-                background: isActive
-                  ? "rgba(255,255,255,0.08)"
-                  : "transparent",
+                background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
                 border: "none",
                 borderRadius: 8,
                 padding: "5px 10px",
                 cursor: "pointer",
                 fontSize: 11,
                 fontWeight: isActive ? 600 : 400,
-                color: isActive
-                  ? "var(--text-primary)"
-                  : "var(--text-secondary)",
+                color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
                 whiteSpace: "nowrap",
                 transition: "all 0.15s",
               }}
             >
               {mod.config.title}
             </button>
-          );
+          )
         })}
       </div>
 
@@ -280,9 +278,7 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
             <input
               type="checkbox"
               checked={activeWidget.enabled || false}
-              onChange={(e) =>
-                handleWidgetChange(activeWidget.id, e.target.checked)
-              }
+              onChange={(e) => handleWidgetChange(activeWidget.id, e.target.checked)}
               style={{
                 width: 15,
                 height: 15,
@@ -323,12 +319,17 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
         {activeWidget && modules.find((m) => m.moduleId === selectedModuleId)?.isSidecar && (
           <button
             onClick={async () => {
-              if (!window.confirm(`Remove "${activeModuleTitle}"?\nThis will delete all settings for this widget.`)) return;
+              if (
+                !window.confirm(
+                  `Remove "${activeModuleTitle}"?\nThis will delete all settings for this widget.`
+                )
+              )
+                return
               try {
-                await SystemService.RemoveSidecar(activeWidget.id);
-                onClose();
+                await SystemService.RemoveSidecar(activeWidget.id)
+                onClose()
               } catch (err) {
-                debugLog("ERR", "Settings", `RemoveSidecar failed: ${err}`);
+                debugLog("ERR", "Settings", `RemoveSidecar failed: ${err}`)
               }
             }}
             style={{
@@ -345,10 +346,10 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
               width: "100%",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)";
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)"
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)";
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.12)"
             }}
           >
             Remove Widget
@@ -369,8 +370,8 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
         <button
           onClick={() => {
             // Revert live opacity preview on cancel
-            document.documentElement.style.setProperty("--hud-opacity", String(originalOpacity));
-            onClose();
+            document.documentElement.style.setProperty("--hud-opacity", String(originalOpacity))
+            onClose()
           }}
           style={{
             background: "rgba(255,255,255,0.06)",
@@ -401,5 +402,5 @@ export const SettingsModal: React.FC<Props> = ({ onClose, modules, currentConfig
         </button>
       </div>
     </div>
-  );
-};
+  )
+}

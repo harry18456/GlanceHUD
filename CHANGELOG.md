@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [0.5.0] — 2026-02-18
+
+### Added
+
+- **前端 Coding Style**: ESLint v9 (typescript-eslint + react-hooks) + Prettier，統一程式碼風格。
+- **後端 Coding Style**: golangci-lint 配置 (errcheck, govet, staticcheck, unused, ineffassign)。
+- **Go Unit Tests**: 43 個測試覆蓋 config (withDefaults, Save/Load, JSON round-trip)、protocol (序列化, omitempty)、widget_source (Sidecar 生命週期, TTL)。
+- **CI/CD 強化**: GitHub Actions 拆分為 Go / Frontend 兩個 jobs，新增 lint + test steps。
+
+### Changed
+
+- 前端清理 dead code：刪除 `buildTypeMap`、`idx`、`labelFontSize` 等 unused variables。
+- 修正 SettingsModal 的 `catch` 語法和 React hooks 依賴陣列。
+- CI `go build` 改為只建置主套件，避免 Wails scaffold 目錄干擾。
+
+---
+
 ## [0.4.0] — 2026-02-17
 
 ### Added

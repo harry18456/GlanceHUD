@@ -106,7 +106,7 @@ body {
      to ensure our borders are visible if they go outside? 
      No, we want containment. 
   */
-  overflow: visible; 
+  overflow: visible;
 }
 
 /*

@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"
 
 export function RingProgress({
   value,
@@ -6,15 +6,15 @@ export function RingProgress({
   size = 72,
   strokeWidth = 5,
 }: {
-  value: number;
-  colour: string;
-  size?: number;
-  strokeWidth?: number;
+  value: number
+  colour: string
+  size?: number
+  strokeWidth?: number
 }) {
-  const r = (size - strokeWidth) / 2;
-  const circ = 2 * Math.PI * r;
-  const clamped = Math.min(100, Math.max(0, value));
-  const offset = circ - (clamped / 100) * circ;
+  const r = (size - strokeWidth) / 2
+  const circ = 2 * Math.PI * r
+  const clamped = Math.min(100, Math.max(0, value))
+  const offset = circ - (clamped / 100) * circ
 
   return (
     <svg width={size} height={size} style={{ overflow: "visible" }} className="drop-shadow-md">
@@ -46,5 +46,5 @@ export function RingProgress({
         />
       </g>
     </svg>
-  );
+  )
 }

@@ -1,18 +1,18 @@
-import { LucideIcon } from "lucide-react";
-import { AnimatedNumber } from "./AnimatedNumber";
-import { RingProgress } from "./RingProgress";
+import { LucideIcon } from "lucide-react"
+import { AnimatedNumber } from "./AnimatedNumber"
+import { RingProgress } from "./RingProgress"
 
 /* ── Colour helpers ── */
 export function accentForValue(v: number) {
-  if (v < 50) return "var(--color-neon-green)";
-  if (v < 80) return "var(--color-neon-yellow)";
-  return "var(--color-neon-pink)";
+  if (v < 50) return "var(--color-neon-green)"
+  if (v < 80) return "var(--color-neon-yellow)"
+  return "var(--color-neon-pink)"
 }
 
 export function glowClassForValue(v: number) {
-  if (v < 50) return "neon-glow-green";
-  if (v < 80) return "neon-glow-yellow";
-  return "neon-glow-pink";
+  if (v < 50) return "neon-glow-green"
+  if (v < 80) return "neon-glow-yellow"
+  return "neon-glow-pink"
 }
 
 export function StatCard({
@@ -22,15 +22,15 @@ export function StatCard({
   sub,
   percentValue, // Optional, if different from value (e.g. disk used vs total)
 }: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  sub: string;
-  percentValue?: number;
+  icon: LucideIcon
+  label: string
+  value: number
+  sub: string
+  percentValue?: number
 }) {
-  const effectivePercent = percentValue !== undefined ? percentValue : value;
-  const accent = accentForValue(effectivePercent);
-  const glowClass = glowClassForValue(effectivePercent);
+  const effectivePercent = percentValue !== undefined ? percentValue : value
+  const accent = accentForValue(effectivePercent)
+  const glowClass = glowClassForValue(effectivePercent)
 
   return (
     <div className="flex items-center gap-4">
@@ -56,5 +56,5 @@ export function StatCard({
         <span className="text-[10px] font-mono text-white/25">{sub}</span>
       </div>
     </div>
-  );
+  )
 }

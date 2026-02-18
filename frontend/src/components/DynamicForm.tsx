@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { ConfigSchema } from "../types";
+import React, { useState, useEffect } from "react"
+import { ConfigSchema } from "../types"
 
 interface Props {
-  schema: ConfigSchema[];
-  values: Record<string, any>;
-  onChange: (values: Record<string, any>) => void;
+  schema: ConfigSchema[]
+  values: Record<string, any>
+  onChange: (values: Record<string, any>) => void
 }
 
 const inputStyle: React.CSSProperties = {
@@ -18,20 +18,20 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
   width: "100%",
   boxSizing: "border-box",
-};
+}
 
 export const DynamicForm: React.FC<Props> = ({ schema, values, onChange }) => {
-  const [formData, setFormData] = useState(values);
+  const [formData, setFormData] = useState(values)
 
   useEffect(() => {
-    setFormData(values);
-  }, [values]);
+    setFormData(values)
+  }, [values])
 
   const handleChange = (key: string, value: any) => {
-    const newData = { ...formData, [key]: value };
-    setFormData(newData);
-    onChange(newData);
-  };
+    const newData = { ...formData, [key]: value }
+    setFormData(newData)
+    onChange(newData)
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -85,20 +85,20 @@ export const DynamicForm: React.FC<Props> = ({ schema, values, onChange }) => {
                 onChange={(e) => handleChange(field.name!, e.target.checked)}
                 style={{ width: 16, height: 16, accentColor: "var(--color-healthy)" }}
               />
-              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                Enable
-              </span>
+              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Enable</span>
             </label>
           )}
 
           {field.type === "checkboxes" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {field.options?.map((opt) => {
-                const raw = formData[field.name!];
+                const raw = formData[field.name!]
                 const selected: string[] = Array.isArray(raw)
                   ? raw
-                  : Array.isArray(field.default) ? field.default : [];
-                const checked = selected.includes(opt.value);
+                  : Array.isArray(field.default)
+                    ? field.default
+                    : []
+                const checked = selected.includes(opt.value)
                 return (
                   <label
                     key={opt.value}
@@ -115,8 +115,8 @@ export const DynamicForm: React.FC<Props> = ({ schema, values, onChange }) => {
                       onChange={() => {
                         const next = checked
                           ? selected.filter((v) => v !== opt.value)
-                          : [...selected, opt.value];
-                        handleChange(field.name!, next);
+                          : [...selected, opt.value]
+                        handleChange(field.name!, next)
                       }}
                       style={{
                         width: 15,
@@ -134,7 +134,7 @@ export const DynamicForm: React.FC<Props> = ({ schema, values, onChange }) => {
                       {opt.label}
                     </span>
                   </label>
-                );
+                )
               })}
             </div>
           )}
@@ -147,7 +147,7 @@ export const DynamicForm: React.FC<Props> = ({ schema, values, onChange }) => {
                 ...inputStyle,
                 appearance: "none",
                 backgroundImage:
-                  'url("data:image/svg+xml,%3Csvg width=\'10\' height=\'6\' viewBox=\'0 0 10 6\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1l4 4 4-4\' stroke=\'%23888\' stroke-width=\'1.5\' fill=\'none\' stroke-linecap=\'round\'/%3E%3C/svg%3E")',
+                  "url(\"data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E\")",
                 backgroundRepeat: "no-repeat",
                 backgroundPosition: "right 10px center",
                 paddingRight: 30,
@@ -163,5 +163,5 @@ export const DynamicForm: React.FC<Props> = ({ schema, values, onChange }) => {
         </div>
       ))}
     </div>
-  );
-};
+  )
+}

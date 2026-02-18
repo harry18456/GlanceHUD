@@ -1,49 +1,56 @@
-import React from "react";
-import { motion } from "framer-motion";
-import { RenderConfig, DataPayload } from "../../types";
-import { statusColor } from "../../lib/statusColor";
+import React from "react"
+import { motion } from "framer-motion"
+import { RenderConfig, DataPayload } from "../../types"
+import { statusColor } from "../../lib/statusColor"
 
 // Default container size (matches defaultSize in HudGrid: 3×3 = 240×120px)
-const BASE_W = 240;
-const BASE_H = 120;
+const BASE_W = 240
+const BASE_H = 120
 
 interface Props {
-  config: RenderConfig;
-  data?: DataPayload;
-  containerWidth: number;
-  containerHeight: number;
+  config: RenderConfig
+  data?: DataPayload
+  containerWidth: number
+  containerHeight: number
 }
 
-export const BarListRenderer: React.FC<Props> = ({ config, data, containerWidth, containerHeight }) => {
+export const BarListRenderer: React.FC<Props> = ({
+  config,
+  data,
+  containerWidth,
+  containerHeight,
+}) => {
   const items = Array.isArray(data?.items)
     ? (data.items as Array<{ label: string; percent: number; value: string }>)
-    : [];
-  const fixedColor = config.props?.color as string | undefined;
+    : []
+  const fixedColor = config.props?.color as string | undefined
 
   // Scale factor
-  const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1;
-  const scaleH = containerHeight > 0 ? containerHeight / BASE_H : 1;
-  const scale = Math.min(scaleW, scaleH);
+  const scaleW = containerWidth > 0 ? containerWidth / BASE_W : 1
+  const scaleH = containerHeight > 0 ? containerHeight / BASE_H : 1
+  const scale = Math.min(scaleW, scaleH)
 
-  const titleFontSize = Math.max(9, Math.round(11 * scale));
-  const labelFontSize = Math.max(10, Math.round(12 * scale));
-  const valueFontSize = Math.max(9, Math.round(11 * scale));
-  const barHeight = Math.max(3, Math.round(4 * scale));
-  const gap = Math.max(6, Math.round(10 * scale));
-  const itemGap = Math.max(3, Math.round(4 * scale));
-  const padding = Math.max(6, Math.round(12 * scale));
+  const titleFontSize = Math.max(9, Math.round(11 * scale))
+  const labelFontSize = Math.max(10, Math.round(12 * scale))
+  const valueFontSize = Math.max(9, Math.round(11 * scale))
+  const barHeight = Math.max(3, Math.round(4 * scale))
+  const gap = Math.max(6, Math.round(10 * scale))
+  const itemGap = Math.max(3, Math.round(4 * scale))
+  const padding = Math.max(6, Math.round(12 * scale))
 
   return (
-    <div style={{
-      padding: `${padding}px ${Math.round(padding * 1.3)}px`,
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      gap,
-      height: "100%",
-      boxSizing: "border-box",
-      overflow: "hidden",
-    }}>
+    <div
+      style={{
+        padding: `${padding}px ${Math.round(padding * 1.3)}px`,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap,
+        height: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
+      }}
+    >
       {config.title && (
         <span
           style={{
@@ -62,7 +69,9 @@ export const BarListRenderer: React.FC<Props> = ({ config, data, containerWidth,
       <div style={{ display: "flex", flexDirection: "column", gap, overflow: "hidden" }}>
         {items.map((item) => (
           <div key={item.label} style={{ display: "flex", flexDirection: "column", gap: itemGap }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <div
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}
+            >
               <span
                 style={{
                   fontSize: labelFontSize,
@@ -113,5 +122,5 @@ export const BarListRenderer: React.FC<Props> = ({ config, data, containerWidth,
         <span style={{ fontSize: labelFontSize, color: "var(--text-tertiary)" }}>No Data</span>
       )}
     </div>
-  );
-};
+  )
+}
