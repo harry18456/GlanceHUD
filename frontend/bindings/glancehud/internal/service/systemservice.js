@@ -103,7 +103,7 @@ export function RegisterSidecar(id, config, schema) {
  *   - removes from data cache
  *   - removes from persisted config (widgets array)
  *   - emits config:reload so frontend refreshes
- * 
+ *
  * Native modules cannot be removed.
  * @param {string} id
  * @returns {$CancellablePromise<void>}

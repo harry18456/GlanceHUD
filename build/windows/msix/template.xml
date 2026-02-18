@@ -21,7 +21,7 @@
         PackageDescription="A GlanceHUD application">
         <Capabilities>
             <Capability Name="runFullTrust" />
-            
+
         </Capabilities>
         <Applications>
             <Application
@@ -30,7 +30,7 @@
                 DisplayName="My Product"
                 ExecutableName="glancehud.exe"
                 EntryPoint="Windows.FullTrustApplication">
-                
+
             </Application>
         </Applications>
         <Resources>

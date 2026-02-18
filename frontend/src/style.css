@@ -103,8 +103,8 @@ body {
   transition: all 0.2s ease;
   /* Allow overflow so our internal cells can handle clipping/borders
      RGL sets overflow: hidden by default usually, but we override it here
-     to ensure our borders are visible if they go outside? 
-     No, we want containment. 
+     to ensure our borders are visible if they go outside?
+     No, we want containment.
   */
   overflow: visible;
 }
@@ -150,7 +150,7 @@ body {
     linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: var(--grid-col-w, 198px) var(--grid-row-h, 48px);
-  /* 
+  /*
      Center alignment:
      Gap center is at -4px (relative to Item start 0).
      We want the grid line to pass through the Gap center.

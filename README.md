@@ -137,6 +137,40 @@ go build
 # 產出 GlanceHUD.exe
 ```
 
+### 測試與覆蓋率
+
+```bash
+# 執行所有 Go 單元測試
+go test ./internal/...
+
+# 顯示覆蓋率摘要
+go test ./internal/... -cover
+
+# 產生 HTML 覆蓋率報告（可用瀏覽器開啟，檢視每行覆蓋狀況）
+go test ./internal/... -coverprofile=coverage.out
+go tool cover -html=coverage.out -o coverage.html
+```
+
+### 程式碼檢查
+
+```bash
+# 前端 Lint + 格式檢查
+cd frontend
+npm run lint            # ESLint
+npx prettier --check src/  # Prettier 格式驗證
+
+# 後端 (需安裝 golangci-lint)
+golangci-lint run
+```
+
+> **Pre-commit Hook**: 專案已配置 [pre-commit](https://pre-commit.com/)，在 `git commit` 時會自動執行以下檢查：
+>
+> - **Go**: format, lint
+> - **Frontend**: ESLint, Prettier
+> - **Misc**: YAML, End-of-file 等通用檢查
+>
+> 若未安裝，請執行 `uv tool install pre-commit` 及 `pre-commit install`。
+
 ## 📜 License
 
 MIT

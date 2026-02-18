@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ---
 
+## [0.5.1] — 2026-02-18
+
+### Changed
+
+- **Pre-commit configuration**: 優化 Windows 相容性，改用 `npm run lint/format` 取代直接呼叫 `npx`，解決路徑解析問題。
+- **Version Bump**: 升級至 0.5.1 以包含 pre-commit 設定變更。
+
+---
+
 ## [0.5.0] — 2026-02-18
 
 ### Added
