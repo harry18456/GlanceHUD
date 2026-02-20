@@ -20,11 +20,11 @@ let windowShown = false
  * Width is derived from the grid column count (+ outer padding).
  * Height is measured from the ref element's scrollHeight.
  *
- * Wails v3 Window.SetSize() accepts logical (CSS / DIP) pixels;
- * it internally converts to physical pixels via DipToPhysicalRect.
- * WebView2 runs in COREWEBVIEW2_BOUNDS_MODE_USE_RAW_PIXELS, but the
- * DIP→physical conversion happens on the Go side, so we must NOT
- * multiply by devicePixelRatio here.
+ * Height must be multiplied by devicePixelRatio before passing to
+ * Window.SetSize. WebView2 reports scrollHeight in CSS pixels, but
+ * Wails' DipToPhysicalRect appears to be a no-op in this context
+ * (window starts Hidden=true before attaching to a screen), so the
+ * DPR conversion must be done on the JS side instead.
  *
  * @param gridWidth  desired window width in CSS pixels
  * @param contentKey  change this value to force a re-sync (e.g. when toggling Settings)

@@ -39,8 +39,10 @@ vendor/
 config.json
 
 # Claude
-.claude
-CLAUDE.md
+.claude/settings.local.json
 
 # Python
 __pycache__
+
+# Vite
+frontend/vite.config.ts.timestamp-*.mjs

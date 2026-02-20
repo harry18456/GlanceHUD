@@ -35,3 +35,12 @@ if (fs.existsSync(packageJsonPath)) {
     fs.writeFileSync(packageJsonPath, JSON.stringify(content, null, 2));
     console.log(`Updated frontend/package.json to ${newVersion}`);
 }
+
+// 4. version.go
+const versionGoPath = path.join(__dirname, '..', 'version.go');
+if (fs.existsSync(versionGoPath)) {
+    let content = fs.readFileSync(versionGoPath, 'utf8');
+    content = content.replace(/const Version = "[^"]*"/, `const Version = "${newVersion}"`);
+    fs.writeFileSync(versionGoPath, content);
+    console.log(`Updated version.go to ${newVersion}`);
+}
